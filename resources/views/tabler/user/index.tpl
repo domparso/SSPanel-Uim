@@ -305,6 +305,9 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="ios">
+                                    {if $public_setting['enable_v2_sub']}<p>
+                                        传统订阅（Shadowrocket）：<code>{$TraditionalSub}?sr=1</code></p>
+                                    {/if}
                                     <p>
                                         适用于 Clash 兼容客户端的订阅：<code>{$UniversalSub}/clash</code>
                                     </p>
@@ -323,6 +326,10 @@
                                         <a href="stash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
                                            class="btn btn-primary">
                                             导入 Stash
+                                        </a>
+                                        <a data-clipboard-text="{$TraditionalSub}?sr=1"
+                                           class="copy btn btn-primary">
+                                            复制 Shadowrocket 订阅链接
                                         </a>
                                     </div>
                                 </div>

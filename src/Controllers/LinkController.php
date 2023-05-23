@@ -59,6 +59,11 @@ final class LinkController extends BaseController
             $sub_info = self::getSS($user);
         }
 
+        if (isset($params['sr']) && $params['sr'] === '1') {
+            $sub_type = 'sr';
+            $sub_info = self::getSR($user);
+        }
+
         if (isset($params['v2ray']) && $params['v2ray'] === '1') {
             $sub_type = 'v2ray';
             $sub_info = self::getV2Ray($user);
@@ -131,8 +136,68 @@ final class LinkController extends BaseController
                     $node_raw->name . PHP_EOL;
             }
         }
-
         return $links;
+    }
+
+    // ios Shadowrocket 订阅
+    public static function getSR($user): string
+    {
+        $links = '';
+        //判断是否开启V2Ray订阅
+        if (! Setting::obtain('enable_v2_sub')) {
+            return $links;
+        }
+        //篩選出用戶能連接的節點
+        $nodes_raw = Node::where('type', 1)
+            ->where('node_class', '<=', $user->class)
+            ->whereIn('node_group', [0, $user->node_group])
+            ->where(static function ($query): void {
+                $query->where('node_bandwidth_limit', '=', 0)->orWhereRaw('node_bandwidth < node_bandwidth_limit');
+            })
+            ->get();
+
+        foreach ($nodes_raw as $node_raw) {
+            $node_custom_config = json_decode($node_raw->custom_config, true);
+            //檢查是否配置“前端/订阅中下发的服务器地址”
+            if (! array_key_exists('server_user', $node_custom_config)) {
+                $server = $node_raw->server;
+            } else {
+                $server = $node_custom_config['server_user'];
+            }
+            if ((int) $node_raw->sort === 11) {
+                $v2_port = $node_custom_config['v2_port'] ?? ($node_custom_config['offset_port_user']
+                    ?? ($node_custom_config['offset_port_node'] ?? 443));
+                //默認值有問題的請懂 V2 怎麽用的人來改一改。
+                $alter_id = $node_custom_config['alter_id'] ?? '0';
+                $security = $node_custom_config['security'] ?? 'none';
+                $network = $node_custom_config['network'] ?? '';
+                $header = $node_custom_config['header'] ?? ['type' => 'none'];
+                $header_type = $header['type'] ?? '';
+                $host = $node_custom_config['host'] ?? '';
+                $path = $node_custom_config['path'] ?? '/';
+                $flow = $node_custom_config['flow'] ?? '';
+
+                $v2rayn_array = [
+                    'v' => '2',
+                    'ps' => $node_raw->name,
+                    'add' => $server,
+                    'port' => $v2_port,
+                    'id' => $user->uuid,
+                    'aid' => $alter_id,
+                    'net' => $network,
+                    'type' => $header_type,
+                    'host' => $host,
+                    'path' => $path,
+                    'tls' => $security,
+                    'flow' => $flow,
+                ];
+                $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+            }
+        }
+
+        $links .= self::getTrojan($user);
+
+        return base64_encode($links);
     }
 
     // SIP002 SS 订阅
@@ -208,6 +273,7 @@ final class LinkController extends BaseController
                 $header_type = $header['type'] ?? '';
                 $host = $node_custom_config['host'] ?? '';
                 $path = $node_custom_config['path'] ?? '/';
+                $flow = $node_custom_config['flow'] ?? '';
 
                 $v2rayn_array = [
                     'v' => '2',
@@ -221,11 +287,13 @@ final class LinkController extends BaseController
                     'host' => $host,
                     'path' => $path,
                     'tls' => $security,
+                    'flow' => $flow,
                 ];
-
-                $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array)) . PHP_EOL;
+                $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
             }
         }
+
+        $links .= self::getTrojan($user);
 
         return $links;
     }
@@ -271,8 +339,9 @@ final class LinkController extends BaseController
                 $transport_method = $node_custom_config['transport_method'] ?? '';
                 $servicename = $node_custom_config['servicename'] ?? '';
                 $path = $node_custom_config['path'] ?? '';
+                $flow = $node_custom_config['flow'] ?? '';
 
-                $links .= 'trojan://' . $user->uuid . '@' . $server . ':' . $trojan_port . '?peer=' . $host . '&sni='
+                $links .= 'trojan://' . $user->uuid . '@' . $server . ':' . $trojan_port . '?flow=' . $flow . '&peer=' . $host . '&sni='
                     . $host . '&obfs=' . $transport_plugin . '&path=' . $path . '&mux=' . $mux . '&allowInsecure='
                     . $allow_insecure . '&obfsParam=' . $transport_method . '&type=' . $transport . '&security='
                     . $security . '&serviceName=' . $servicename . '#' . $node_raw->name . PHP_EOL;
