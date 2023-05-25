@@ -247,6 +247,8 @@
                                 {/if}
                                 <div class="tab-pane" id="windows">
                                     <div>
+                                        {if $public_setting['enable_v2_sub']}<p>适用于 V2ray 的订阅：<code>{$TraditionalSub}?v2ray=1</code></p>
+                                        {/if}
                                         <p>
                                             适用于 Clash 的订阅：<code>{$UniversalSub}/clash</code>
                                         </p>
@@ -262,6 +264,10 @@
                                             <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
                                                class="btn btn-primary">
                                                 导入 Clash
+                                            </a>
+                                            <a href="/clients/v2rayNG.apk"
+                                               class="btn btn-primary">
+                                                下载 v2rayNG（Android）
                                             </a>
                                         </div>
                                     </div>
