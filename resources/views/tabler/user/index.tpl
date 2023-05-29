@@ -1,4 +1,4 @@
-{include file='user/tabler_header.tpl'}
+{include file='user/header.tpl'}
 
 <div class="page-wrapper">
     <div class="container-xl">
@@ -33,7 +33,7 @@
                                             <div class="font-weight-medium">
                                                 账户等级
                                             </div>
-                                            <div class="text-muted">
+                                            <div class="text-secondary">
                                                 {if $user->class === 0}
                                                     免费
                                                 {else}
@@ -58,7 +58,7 @@
                                             <div class="font-weight-medium">
                                                 账户余额
                                             </div>
-                                            <div class="text-muted">
+                                            <div class="text-secondary">
                                                 {$user->money}
                                             </div>
                                         </div>
@@ -84,7 +84,7 @@
                                             <div class="font-weight-medium">
                                                 同时连接IP限制
                                             </div>
-                                            <div class="text-muted">
+                                            <div class="text-secondary">
                                                 {if $user->node_iplimit !== 0}
                                                     {$user->node_iplimit}
                                                 {else}
@@ -109,7 +109,7 @@
                                             <div class="font-weight-medium">
                                                 速度限制
                                             </div>
-                                            <div class="text-muted">
+                                            <div class="text-secondary">
                                                 {if $user->node_speedlimit !== 0.0}
                                                     <code>{$user->node_speedlimit}</code> Mbps
                                                 {else}
@@ -257,9 +257,9 @@
                                                class="copy btn btn-primary">
                                                 复制 Clash 订阅链接
                                             </a>
-                                            <a href="/clients/Clash-Windows.exe"
+                                            <a href="/clients/Clash.Verge.msi"
                                                class="btn btn-primary">
-                                                下载 Clash for Windows
+                                                下载 Clash Verge
                                             </a>
                                             <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
                                                class="btn btn-primary">
@@ -281,9 +281,13 @@
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="/clients/Clash-Windows.dmg"
+                                        <a href="/clients/Clash.Verge_aarch64.dmg"
                                            class="btn btn-primary">
-                                            下载 Clash for Windows
+                                            下载 Clash Verge (aarch64)
+                                        </a>
+                                        <a href="/clients/Clash.Verge_x64.dmg"
+                                           class="btn btn-primary">
+                                            下载 Clash Verge (x86_64)
                                         </a>
                                         <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
                                            class="btn btn-primary">
@@ -354,9 +358,9 @@
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="/clients/Clash-Windows.tar.gz"
+                                        <a href="/clients/Clash.Verge.AppImage.tar.gz"
                                            class="btn btn-primary">
-                                            下载 Clash for Windows
+                                            下载 Clash Verge
                                         </a>
                                         <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
                                            class="btn btn-primary">
@@ -448,7 +452,7 @@
                             <span class="card-subtitle">{$ann->date}</span>
                             {/if}
                             </h3>
-                            <p class="text-muted">
+                            <p class="text-secondary">
                             {if $ann !== null}
                                 {$ann->content}
                             {else}
@@ -468,7 +472,7 @@
                             </div>
                             <div class="card-body">
                                 <h3 class="card-title">每日签到</h3>
-                                <p class="text-muted">
+                                <p>
                                     签到可领取
                                     {if $config['checkinMin'] !== $config['checkinMax']}
                                         &nbsp;<code>{$config['checkinMin']} MB</code> 至 <code>{$config['checkinMax']} MB</code>
@@ -477,13 +481,13 @@
                                         <code>{$config['checkinMin']} MB</code>
                                     {/if}
                                 </p>
-                                <p class="text-muted">
+                                <p>
                                     上次签到时间：<code>{$user->lastCheckInTime()}</code>
                                 </p>
                             </div>
                             <div class="card-footer">
                                 <div class="d-flex">
-                                    {if !$user->isAbleToCheckin()}
+                                    {if ! $user->isAbleToCheckin()}
                                     <button id="check-in" class="btn btn-primary ms-auto" disabled>已签到</button>
                                     {else}
                                     {if $public_setting['enable_checkin_captcha']}
@@ -525,7 +529,7 @@
                 url: "/user/checkin",
                 dataType: "json",              
                 data: {
-                    {if $public_setting['enable_checkin_captcha']}
+                    {if $public_setting['enable_checkin_captcha'] && $user->isAbleToCheckin()}
                         {if $public_setting['captcha_provider'] === 'turnstile'}
                             turnstile: $('input[name=cf-turnstile-response]').val(),
                         {/if}
@@ -547,7 +551,7 @@
         });
     </script>
 
-    {if $public_setting['enable_checkin_captcha']}
+    {if $public_setting['enable_checkin_captcha'] && $user->isAbleToCheckin()}
         {if $public_setting['captcha_provider'] === 'turnstile'}
             <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
         {/if}
@@ -569,4 +573,4 @@
             </script>
         {/if}
     {/if}
-{include file='user/tabler_footer.tpl'}
+{include file='user/footer.tpl'}
