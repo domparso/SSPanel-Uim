@@ -41,7 +41,7 @@ final class LinkController extends BaseController
 
         $user = $link->user();
 
-        $sub_type = '';
+//        $sub_type = '';
         $sub_info = '';
 
         if (isset($params['clash']) && $params['clash'] === '1') {
@@ -165,6 +165,7 @@ final class LinkController extends BaseController
                 $server = $node_custom_config['server_user'];
             }
             if ((int) $node_raw->sort === 11) {
+                $enable_vless = $node_custom_config['enable_vless'] ?? '0';
                 $v2_port = $node_custom_config['v2_port'] ?? ($node_custom_config['offset_port_user']
                     ?? ($node_custom_config['offset_port_node'] ?? 443));
                 //默認值有問題的請懂 V2 怎麽用的人來改一改。
@@ -177,25 +178,47 @@ final class LinkController extends BaseController
                 $path = $node_custom_config['path'] ?? '/';
                 $flow = $node_custom_config['flow'] ?? '';
 
-                $v2rayn_array = [
-                    'v' => '2',
-                    'ps' => $node_raw->name,
-                    'add' => $server,
-                    'port' => $v2_port,
-                    'id' => $user->uuid,
-                    'aid' => $alter_id,
-                    'net' => $network,
-                    'type' => $header_type,
-                    'host' => $host,
-                    'path' => $path,
-                    'tls' => $security,
-                    'flow' => $flow,
-                ];
-                $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+                if ($enable_vless === "1") {
+                    $encryption = $node_custom_config['encryption'] ?? 'none';
+                    $allow_insecure = $node_custom_config['allow_insecure'] ?? '0';
+                    $mux = $node_custom_config['mux'] ?? '';
+//                    $transport = $node_custom_config['transport']
+//                        ?? array_key_exists('grpc', $node_custom_config)
+//                        && $node_custom_config['grpc'] === '1' ? 'grpc' : 'tcp';
+                    $transport_plugin = $node_custom_config['transport_plugin'] ?? '';
+                    $transport_method = $node_custom_config['transport_method'] ?? '';
+                    $servicename = $node_custom_config['servicename'] ?? '';
+
+                    $links .= 'vless://' . $user->uuid . '@' . $server . ':' . $v2_port . '?flow=' . ord($flow) . '&peer=' . $host . '&sni='
+                        . $host . '&obfs=' . $transport_plugin . '&path=' . $path . '&mux=' . $mux . '&allowInsecure='
+                        . $allow_insecure . '&obfsParam=' . $transport_method . '&type=' . $network . '&security='
+                        . $security . '&serviceName=' . $servicename . '#' . $node_raw->name . PHP_EOL;
+//                    $links .= 'vless://' . $user->uuid . '@' . $server . ':' . $v2_port . '?flow=' . $flow . '&encryption=' . $encryption . '&peer=' . $host . '&path=' . $path
+//                        . '&type=' . $network . '&security=' . $security . '&header_type=' . $header_type . '#' . $node_raw->name . PHP_EOL;
+                } else {
+                    $v2rayn_array = [
+                        'v' => '2',
+                        'ps' => $node_raw->name,
+                        'add' => $server,
+                        'port' => $v2_port,
+                        'id' => $user->uuid,
+                        'aid' => $alter_id,
+                        'net' => $network,
+                        'type' => $header_type,
+                        'host' => $host,
+                        'path' => $path,
+                        'tls' => $security,
+                        'flow' => $flow,
+                    ];
+                    $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+                }
             }
         }
 
-        $links .= self::getTrojan($user);
+        // trojan
+
+
+        $links .= self::getTrojan($user, "sr");
 
         return base64_encode($links);
     }
@@ -268,6 +291,7 @@ final class LinkController extends BaseController
         $baseUrl = explode('//', $_ENV['baseUrl'])[1];
         $baseUrl = explode('/', $baseUrl)[0];
 
+        // 订阅信息显示
         $v2rayn_array1 = [
             'v' => '2',
             'ps' => $unusedTraffic,
@@ -318,6 +342,7 @@ final class LinkController extends BaseController
                 $server = $node_custom_config['server_user'];
             }
             if ((int) $node_raw->sort === 11) {
+                $enable_vless = $node_custom_config['enable_vless'] ?? '0';
                 $v2_port = $node_custom_config['v2_port'] ?? ($node_custom_config['offset_port_user']
                     ?? ($node_custom_config['offset_port_node'] ?? 443));
                 //默認值有問題的請懂 V2 怎麽用的人來改一改。
@@ -330,21 +355,30 @@ final class LinkController extends BaseController
                 $path = $node_custom_config['path'] ?? '/';
                 $flow = $node_custom_config['flow'] ?? '';
 
-                $v2rayn_array = [
-                    'v' => '2',
-                    'ps' => $node_raw->name,
-                    'add' => $server,
-                    'port' => $v2_port,
-                    'id' => $user->uuid,
-                    'aid' => $alter_id,
-                    'net' => $network,
-                    'type' => $header_type,
-                    'host' => $host,
-                    'path' => $path,
-                    'tls' => $security,
-                    'flow' => $flow,
-                ];
-                $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+                if ($enable_vless === "1") {
+                    $encryption = $node_custom_config['encryption'] ?? 'none';
+
+
+                    $links .= 'vless://' . $user->uuid . '@' . $server . ':' . $v2_port . '?encryption=' . $encryption . '&flow=' . $flow . '&peer=' . $host . '&path=' . $path
+                        . '&type=' . $network . '&security=' . $security . '&header_type=' . $header_type . '#' . $node_raw->name . PHP_EOL;
+                } else {
+                    $v2rayn_array = [
+                        'v' => '2',
+                        'ps' => $node_raw->name,
+                        'add' => $server,
+                        'port' => $v2_port,
+                        'id' => $user->uuid,
+                        'aid' => $alter_id,
+                        'net' => $network,
+                        'type' => $header_type,
+                        'host' => $host,
+                        'path' => $path,
+                        'tls' => $security,
+                        'flow' => $flow,
+                    ];
+                    $links .= 'vmess://' . base64_encode(json_encode($v2rayn_array,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+                }
+
             }
         }
 
@@ -353,7 +387,7 @@ final class LinkController extends BaseController
         return $links;
     }
 
-    public static function getTrojan($user): string
+    public static function getTrojan($user, $subType=NULL): string
     {
         $links = '';
         //判断是否开启Trojan订阅
@@ -394,7 +428,11 @@ final class LinkController extends BaseController
                 $transport_method = $node_custom_config['transport_method'] ?? '';
                 $servicename = $node_custom_config['servicename'] ?? '';
                 $path = $node_custom_config['path'] ?? '';
-                $flow = $node_custom_config['flow'] ?? '';
+                if ($subType === 'sr') {
+                    $flow = '';
+                } else {
+                    $flow = $node_custom_config['flow'] ?? '';
+                }
 
                 $links .= 'trojan://' . $user->uuid . '@' . $server . ':' . $trojan_port . '?flow=' . $flow . '&peer=' . $host . '&sni='
                     . $host . '&obfs=' . $transport_plugin . '&path=' . $path . '&mux=' . $mux . '&allowInsecure='
