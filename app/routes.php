@@ -13,6 +13,10 @@ return static function (Slim\App $app): void {
     $app->get('/', App\Controllers\HomeController::class . ':index');
     $app->get('/tos', App\Controllers\HomeController::class . ':tos');
     $app->get('/staff', App\Controllers\HomeController::class . ':staff');
+    // Error Page
+    $app->get('/404', App\Controllers\HomeController::class . ':notFound');
+    $app->get('/405', App\Controllers\HomeController::class . ':methodNotAllowed');
+    $app->get('/500', App\Controllers\HomeController::class . ':internalServerError');
     // Telegram
     $app->post('/telegram_callback', App\Controllers\HomeController::class . ':telegram');
     // User Center
@@ -57,7 +61,6 @@ return static function (Slim\App $app): void {
         $group->get('/kill', App\Controllers\UserController::class . ':kill');
         $group->post('/kill', App\Controllers\UserController::class . ':handleKill');
         $group->get('/logout', App\Controllers\UserController::class . ':logout');
-        $group->get('/backtoadmin', App\Controllers\UserController::class . ':backtoadmin');
         // MFA
         $group->post('/ga_check', App\Controllers\User\MFAController::class . ':checkGa');
         $group->post('/ga_set', App\Controllers\User\MFAController::class . ':setGa');
@@ -270,12 +273,6 @@ return static function (Slim\App $app): void {
         // 审计 & 杂七杂八的功能
         $group->get('/func/detect_rules', App\Controllers\WebAPI\FuncController::class . ':getDetectLogs');
         $group->get('/func/ping', App\Controllers\WebAPI\FuncController::class . ':ping');
-        // Dummy API for old version
-        $group->get('/nodes', App\Controllers\WebAPI\NodeController::class . ':getAllInfo');
-        $group->post('/func/block_ip', App\Controllers\WebAPI\FuncController::class . ':addBlockIp');
-        $group->get('/func/block_ip', App\Controllers\WebAPI\FuncController::class . ':getBlockip');
-        $group->get('/func/unblock_ip', App\Controllers\WebAPI\FuncController::class . ':getUnblockip');
-        $group->post('/nodes/{id}/info', App\Controllers\WebAPI\NodeController::class . ':info');
     })->add(new NodeToken());
 
     // 传统订阅（SS/V2Ray/Trojan etc.）

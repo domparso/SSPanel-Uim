@@ -20,7 +20,6 @@ use App\Services\Captcha;
 use App\Services\Config;
 use App\Services\DB;
 use App\Services\MFA;
-use App\Utils\Cookie;
 use App\Utils\Hash;
 use App\Utils\ResponseHelper;
 use App\Utils\Telegram;
@@ -31,10 +30,17 @@ use Ramsey\Uuid\Uuid;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use voku\helper\AntiXSS;
+use function array_column;
+use function array_multisort;
 use function in_array;
 use function json_decode;
+use function str_replace;
 use function strlen;
+use function strtolower;
+use function strtotime;
 use function time;
+use const BASE_PATH;
+use const SORT_ASC;
 
 /**
  *  HomeController
@@ -260,41 +266,46 @@ final class UserController extends BaseController
     {
         $antiXss = new AntiXSS();
         $user = $this->user;
-        $newemail = $antiXss->xss_clean($request->getParam('newemail'));
-        $oldemail = $user->email;
-        $otheruser = User::where('email', $newemail)->first();
+        $new_email = $antiXss->xss_clean($request->getParam('newemail'));
+        $old_email = $user->email;
 
         if (! $_ENV['enable_change_email']) {
             return ResponseHelper::error($response, '此项不允许自行修改，请联系管理员操作');
         }
 
-        if (Setting::obtain('reg_email_verify')) {
-            $emailcode = $request->getParam('emailcode');
-            $mailcount = EmailVerify::where('email', '=', $newemail)
-                ->where('code', '=', $emailcode)->where('expire_in', '>', time())->first();
-            if ($mailcount === null) {
-                return ResponseHelper::error($response, '你的邮箱验证码不正确');
-            }
-        }
-
-        if ($newemail === '') {
+        if ($new_email === '') {
             return ResponseHelper::error($response, '未填写邮箱');
         }
 
-        $check_res = Tools::isEmailLegal($newemail);
-        if ($check_res['ret'] === 0) {
+        if (! Tools::isEmailLegal($new_email)) {
             return $response->withJson($check_res);
         }
 
-        if ($otheruser !== null) {
+        $exist_user = User::where('email', $new_email)->first();
+
+        if ($exist_user !== null) {
             return ResponseHelper::error($response, '邮箱已经被使用了');
         }
 
-        if ($newemail === $oldemail) {
+        if ($new_email === $old_email) {
             return ResponseHelper::error($response, '新邮箱不能和旧邮箱一样');
         }
 
-        $user->email = $newemail;
+        if (Setting::obtain('reg_email_verify')) {
+            $email_code = $request->getParam('emailcode');
+            $email_verify = EmailVerify::where('email', '=', $new_email)
+                ->where('code', '=', $email_code)
+                ->where('expire_in', '>', time())
+                ->first();
+
+            if ($email_verify === null) {
+                return ResponseHelper::error($response, '你的邮箱验证码不正确');
+            }
+
+            EmailVerify::where('email', $email)->delete();
+        }
+
+        $user->email = $new_email;
 
         if (! $user->save()) {
             return ResponseHelper::error($response, '修改失败');
@@ -475,7 +486,7 @@ final class UserController extends BaseController
                 'lastUsedTraffic' => $this->user->lastUsedTraffic(),
                 'unUsedTraffic' => $this->user->unusedTraffic(),
             ],
-            'traffic' => Tools::flowAutoShow($this->user->transfer_enable),
+            'traffic' => Tools::autoBytes($this->user->transfer_enable),
             'unflowtraffic' => $this->user->transfer_enable,
             'msg' => $checkin['msg'],
         ]);
@@ -547,55 +558,11 @@ final class UserController extends BaseController
         return ResponseHelper::successfully($response, '重置成功');
     }
 
-    public function backtoadmin(ServerRequest $request, Response $response, array $args): Response
-    {
-        $userid = Cookie::get('uid');
-        $adminid = Cookie::get('old_uid');
-        $user = User::find($userid);
-        $admin = User::find($adminid);
-
-        if (! $admin->is_admin || ! $user) {
-            Cookie::set([
-                'uid' => null,
-                'email' => null,
-                'key' => null,
-                'ip' => null,
-                'expire_in' => null,
-                'old_uid' => null,
-                'old_email' => null,
-                'old_key' => null,
-                'old_ip' => null,
-                'old_expire_in' => null,
-                'old_local' => null,
-            ], time() - 1000);
-        }
-        $expire_in = Cookie::get('old_expire_in');
-        $local = Cookie::get('old_local');
-        Cookie::set([
-            'uid' => Cookie::get('old_uid'),
-            'email' => Cookie::get('old_email'),
-            'key' => Cookie::get('old_key'),
-            'ip' => Cookie::get('old_ip'),
-            'expire_in' => $expire_in,
-            'old_uid' => null,
-            'old_email' => null,
-            'old_key' => null,
-            'old_ip' => null,
-            'old_expire_in' => null,
-            'old_local' => null,
-        ], $expire_in);
-        return $response->withStatus(302)->withHeader('Location', $local);
-    }
-
     public function switchThemeMode(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
         $user = $this->user;
 
-        if ($user->is_dark_mode === 1) {
-            $user->is_dark_mode = 0;
-        } else {
-            $user->is_dark_mode = 1;
-        }
+        $user->is_dark_mode = $user->is_dark_mode === 1 ? 0 : 1;
 
         if (! $user->save()) {
             return ResponseHelper::error($response, '切换失败');

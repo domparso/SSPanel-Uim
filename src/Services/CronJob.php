@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Models\Ann;
 use App\Models\DetectLog;
 use App\Models\EmailQueue;
-use App\Models\EmailVerify;
 use App\Models\Invoice;
 use App\Models\Node;
 use App\Models\OnlineLog;
@@ -66,7 +65,6 @@ final class CronJob
         UserSubscribeLog::where('request_time', '<', date('Y-m-d H:i:s', time() - 86400 * (int) $_ENV['subscribeLog_keep_days']))->delete();
         UserHourlyUsage::where('datetime', '<', time() - 86400 * (int) $_ENV['trafficLog_keep_days'])->delete();
         DetectLog::where('datetime', '<', time() - 86400 * 3)->delete();
-        EmailVerify::where('expire_in', '<', time() - 86400)->delete();
         EmailQueue::where('time', '<', time() - 86400)->delete();
         PasswordReset::where('expire_time', '<', time() - 86400)->delete();
         OnlineLog::where('last_time', '<', time() - 86400)->delete();
@@ -143,13 +141,19 @@ final class CronJob
         echo date('Y-m-d H:i:s') . ' 免费用户清理完成' . PHP_EOL;
     }
 
+    /**
+     * @throws TelegramSDKException
+     */
     public static function detectNodeOffline(): void
     {
         $nodes = Node::where('type', 1)->get();
         $adminUsers = User::where('is_admin', '=', '1')->get();
 
         foreach ($nodes as $node) {
-            $notice_text = '';
+            if ($node->getNodeOnlineStatus() >= 0 && $node->online === 1) {
+                continue;
+            }
+
             if ($node->getNodeOnlineStatus() === -1 && $node->online === 1) {
                 foreach ($adminUsers as $user) {
                     echo 'Send Node Offline Email to admin user: ' . $user->id . PHP_EOL;
@@ -170,16 +174,16 @@ final class CronJob
                 }
 
                 if (Setting::obtain('telegram_node_offline')) {
-                    try {
-                        Telegram::send($notice_text);
-                    } catch (Exception $e) {
-                        echo $e->getMessage() . PHP_EOL;
-                    }
+                    Telegram::send($notice_text);
                 }
 
-                $node->online = false;
+                $node->online = 0;
                 $node->save();
-            } elseif ($node->getNodeOnlineStatus() === 1 && $node->online === 0) {
+
+                continue;
+            }
+
+            if ($node->getNodeOnlineStatus() === 1 && $node->online === 0) {
                 foreach ($adminUsers as $user) {
                     echo 'Send Node Online Email to admin user: ' . $user->id . PHP_EOL;
                     $user->sendMail(
@@ -199,18 +203,13 @@ final class CronJob
                 }
 
                 if (Setting::obtain('telegram_node_online')) {
-                    try {
-                        Telegram::send($notice_text);
-                    } catch (Exception $e) {
-                        echo $e->getMessage() . PHP_EOL;
-                    }
+                    Telegram::send($notice_text);
                 }
 
-                $node->online = true;
+                $node->online = 1;
                 $node->save();
             }
         }
-
         echo date('Y-m-d H:i:s') . ' 节点离线检测完成' . PHP_EOL;
     }
 
@@ -605,7 +604,7 @@ final class CronJob
      */
     public static function sendTelegramDiary(): void
     {
-        $Analytics = new Analytics();
+        $analytics = new Analytics();
 
         Telegram::send(
             str_replace(
@@ -614,8 +613,8 @@ final class CronJob
                     '%lastday_total%',
                 ],
                 [
-                    $Analytics->getTodayCheckinUser(),
-                    $Analytics->getTodayTrafficUsage(),
+                    $analytics->getTodayCheckinUser(),
+                    $analytics->getTodayTrafficUsage(),
                 ],
                 Setting::obtain('telegram_diary_text')
             )
