@@ -25,6 +25,7 @@
                                 <thead>
                                     <tr>
                                         <th>节点</th>
+                                        {$keyList = array_keys($results['0']['unlock_item'])}
                                         {foreach $results['0']['unlock_item'] as $key => $value}
                                             {if $key !== 'BilibiliChinaMainland'}
                                                 {if $key === 'BilibiliHKMCTW'}
@@ -43,14 +44,9 @@
                                     {foreach $results as $result}
                                         <tr>
                                             <td>{$result['node_name']}</td>
-                                            <td>{$result['unlock_item']['YouTube']}</td>
-                                            <td>{$result['unlock_item']['Netflix']}</td>
-                                            <td>{$result['unlock_item']['DisneyPlus']}</td>
-                                            <td>{$result['unlock_item']['BilibiliHKMCTW']}</td>
-                                            <td>{$result['unlock_item']['BilibiliTW']}</td>
-                                            <td>{$result['unlock_item']['MyTVSuper']}
-                                            <td>{$result['unlock_item']['BBC']}</td>
-                                            <td>{$result['unlock_item']['Abema']}</td>
+                                            {foreach $keyList as $key}
+                                                <td>{$result['unlock_item'][$key]}</td>
+                                            {/foreach}
                                             <td>{date('Y-m-d H:i:s', $result['created_at'])}</td>
                                         </tr>
                                     {/foreach}
