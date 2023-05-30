@@ -262,7 +262,7 @@ return static function (Slim\App $app): void {
     // WebAPI
     $app->group('/mod_mu', static function (RouteCollectorProxy $group): void {
         // 流媒体检测
-        $group->post('/media/save_report', App\Controllers\WebAPI\NodeController::class . ':saveReport');
+        $group->post('/media/saveReport', App\Controllers\WebAPI\NodeController::class . ':saveReport');
         // 节点
         $group->get('/nodes/{id}/info', App\Controllers\WebAPI\NodeController::class . ':getInfo');
         // 用户
