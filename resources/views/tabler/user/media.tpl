@@ -6,10 +6,10 @@
             <div class="row align-items-center">
                 <div class="col">
                     <h2 class="page-title">
-                        <span class="home-title">流媒体解锁</span>
+                        <span class="home-title">限制站点解锁</span>
                     </h2>
                     <div class="page-pretitle my-3">
-                        <span class="home-subtitle">你可以在这里查看节点的流媒体解锁情况</span>
+                        <span class="home-subtitle">你可以在这里查看节点的限制站点的解锁情况</span>
                     </div>
                 </div>
             </div>

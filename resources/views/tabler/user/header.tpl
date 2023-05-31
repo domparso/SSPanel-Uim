@@ -128,7 +128,7 @@
                                     {if $public_setting['display_media']}
                                     <a class="dropdown-item" href="/user/media">
                                         <i class="ti ti-key"></i>&nbsp;
-                                        流媒体解锁
+                                        限制站点解锁
                                     </a>
                                     {/if}
                                 </div>
