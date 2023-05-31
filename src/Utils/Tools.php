@@ -59,9 +59,11 @@ final class Tools
         if ($_ENV['maxmind_license_key'] === '') {
             $err_msg = 'GeoIP2 服务未配置';
         } else {
-            $geoip = new GeoIP2();
-            $city = $geoip->getCity($ip);
-            $country = $geoip->getCountry($ip);
+            if(is_file(BASE_PATH . '/storage/GeoLite2-City/GeoLite2-City.mmdb') and is_file(BASE_PATH . '/storage/GeoLite2-Country/GeoLite2-Country.mmdb')){
+                $geoip = new GeoIP2();
+                $city = $geoip->getCity($ip);
+                $country = $geoip->getCountry($ip);
+            }
         }
 
         if ($city !== null) {
