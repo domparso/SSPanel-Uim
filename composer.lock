@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2a8168eeedde7a53da86b9371da7afae",
+    "content-hash": "aa1e0b1d791d02dc5c22fb56bf1302a7",
     "packages": [
         {
             "name": "anankke/omnipay-alipay",
@@ -2584,16 +2584,16 @@
         },
         {
             "name": "openai-php/client",
-            "version": "v0.5.1",
+            "version": "v0.6.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/openai-php/client.git",
-                "reference": "34e732f07eec089eb5791730f9f06e6d1669d968"
+                "reference": "aca5cfcfdc7effa1418f4b6997c3510826786b25"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/openai-php/client/zipball/34e732f07eec089eb5791730f9f06e6d1669d968",
-                "reference": "34e732f07eec089eb5791730f9f06e6d1669d968",
+                "url": "https://api.github.com/repos/openai-php/client/zipball/aca5cfcfdc7effa1418f4b6997c3510826786b25",
+                "reference": "aca5cfcfdc7effa1418f4b6997c3510826786b25",
                 "shasum": ""
             },
             "require": {
@@ -2603,19 +2603,20 @@
                 "psr/http-client": "^1.0.2",
                 "psr/http-client-implementation": "^1.0.1",
                 "psr/http-factory-implementation": "*",
-                "psr/http-message": "^1.1.0"
+                "psr/http-message": "^1.1.0|^2.0.0"
             },
             "require-dev": {
-                "guzzlehttp/guzzle": "^7.6.1",
+                "guzzlehttp/guzzle": "^7.7.0",
                 "guzzlehttp/psr7": "^2.5.0",
-                "laravel/pint": "^1.10.0",
+                "laravel/pint": "^1.10.2",
                 "nunomaduro/collision": "^7.5.2",
-                "pestphp/pest": "^2.6.1",
-                "pestphp/pest-plugin-arch": "^2.1.2",
+                "pestphp/pest": "dev-develop as 2.6.2",
+                "pestphp/pest-plugin-arch": "^2.2.0",
                 "pestphp/pest-plugin-mock": "^2.0.0",
+                "pestphp/pest-plugin-type-coverage": "^2.0.0",
                 "phpstan/phpstan": "^1.10.15",
-                "rector/rector": "^0.14.8",
-                "symfony/var-dumper": "^6.2.10"
+                "rector/rector": "^0.16.0",
+                "symfony/var-dumper": "^6.3.0"
             },
             "type": "library",
             "autoload": {
@@ -2655,7 +2656,7 @@
             ],
             "support": {
                 "issues": "https://github.com/openai-php/client/issues",
-                "source": "https://github.com/openai-php/client/tree/v0.5.1"
+                "source": "https://github.com/openai-php/client/tree/v0.6.2"
             },
             "funding": [
                 {
@@ -2671,7 +2672,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2023-05-24T15:57:04+00:00"
+            "time": "2023-06-23T20:13:33+00:00"
         },
         {
             "name": "ozdemir/datatables",
@@ -2787,16 +2788,16 @@
         },
         {
             "name": "php-http/discovery",
-            "version": "1.18.1",
+            "version": "1.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-http/discovery.git",
-                "reference": "f258b3a1d16acb7b21f3b42d7a2494a733365237"
+                "reference": "1856a119a0b0ba8da8b5c33c080aa7af8fac25b4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-http/discovery/zipball/f258b3a1d16acb7b21f3b42d7a2494a733365237",
-                "reference": "f258b3a1d16acb7b21f3b42d7a2494a733365237",
+                "url": "https://api.github.com/repos/php-http/discovery/zipball/1856a119a0b0ba8da8b5c33c080aa7af8fac25b4",
+                "reference": "1856a119a0b0ba8da8b5c33c080aa7af8fac25b4",
                 "shasum": ""
             },
             "require": {
@@ -2859,9 +2860,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-http/discovery/issues",
-                "source": "https://github.com/php-http/discovery/tree/1.18.1"
+                "source": "https://github.com/php-http/discovery/tree/1.19.0"
             },
-            "time": "2023-05-17T08:53:10+00:00"
+            "time": "2023-06-19T08:45:36+00:00"
         },
         {
             "name": "php-http/guzzle7-adapter",
