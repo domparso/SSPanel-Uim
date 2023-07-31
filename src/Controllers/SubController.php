@@ -8,10 +8,13 @@ use App\Models\Link;
 use App\Models\Node;
 use App\Models\Setting;
 use App\Models\UserSubscribeLog;
+use App\Services\RateLimit;
 use App\Utils\ResponseHelper;
 use App\Utils\Tools;
 use Psr\Http\Message\ResponseInterface;
+use RedisException;
 use Symfony\Component\Yaml\Yaml;
+use voku\helper\AntiXSS;
 use function array_key_exists;
 use function array_merge;
 use function in_array;
@@ -22,15 +25,30 @@ use function json_decode;
  */
 final class SubController extends BaseController
 {
+    /**
+     * @throws RedisException
+     */
     public static function getContent($request, $response, $args): ResponseInterface
     {
         $err_msg = '订阅链接无效';
 
-        $token = $args['token'];
         $subtype = $args['subtype'];
         $subtype_list = ['json', 'clash', 'sip008'];
 
-        if (! $_ENV['Subscribe'] || ! in_array($subtype, $subtype_list)) {
+        if (! $_ENV['Subscribe'] ||
+            ! in_array($subtype, $subtype_list) ||
+            'https://' . $request->getHeaderLine('Host') !== $_ENV['subUrl']
+        ) {
+            return ResponseHelper::error($response, $err_msg);
+        }
+
+        $antiXss = new AntiXSS();
+        $token = $antiXss->xss_clean($args['token']);
+
+        if ($_ENV['enable_rate_limit'] &&
+            (! RateLimit::checkIPLimit($request->getServerParam('REMOTE_ADDR')) ||
+            ! RateLimit::checkSubLimit($token))
+        ) {
             return ResponseHelper::error($response, $err_msg);
         }
 
@@ -57,10 +75,12 @@ final class SubController extends BaseController
                 $sub_info,
             ]);
         }
+
         $sub_details = ' upload=' . $user->u
         . '; download=' . $user->d
         . '; total=' . $user->transfer_enable
         . '; expire=' . strtotime($user->class_expire);
+
         return $response->withHeader('Subscription-Userinfo', $sub_details)->write(
             $sub_info
         );
@@ -115,9 +135,9 @@ final class SubController extends BaseController
                     $network = $node_custom_config['network'] ?? '';
                     $header = $node_custom_config['header'] ?? ['type' => 'none'];
                     $header_type = $header['type'] ?? '';
-                    $host = $node_custom_config['host'] ?? '';
+                    $host = $node_custom_config['header']['request']['headers']['Host'][0] ?? $node_custom_config['host'] ?? '';
                     $servicename = $node_custom_config['servicename'] ?? '';
-                    $path = $node_custom_config['path'] ?? '/';
+                    $path = $node_custom_config['header']['request']['path'][0] ?? $node_custom_config['path'] ?? '/';
                     $tls = in_array($security, ['tls', 'xtls']) ? '1' : '0';
                     $enable_vless = $node_custom_config['enable_vless'] ?? '0';
                     $node = [
@@ -257,8 +277,8 @@ final class SubController extends BaseController
                     $alter_id = $node_custom_config['alter_id'] ?? '0';
                     $security = $node_custom_config['security'] ?? 'none';
                     $encryption = $node_custom_config['encryption'] ?? 'auto';
-                    $network = $node_custom_config['network'] ?? '';
-                    $host = $node_custom_config['host'] ?? '';
+                    $network = $node_custom_config['header']['type'] ?? $node_custom_config['network'] ?? '';
+                    $host = $node_custom_config['header']['request']['headers']['Host'][0] ?? $node_custom_config['host'] ?? '';
                     $allow_insecure = $node_custom_config['allow_insecure'] ?? false;
                     $tls = in_array($security, ['tls', 'xtls']);
                     // Clash 特定配置
@@ -355,7 +375,12 @@ final class SubController extends BaseController
             'proxies' => $nodes,
         ];
 
-        return Yaml::dump(array_merge($clash_config, $clash_nodes, $clash_group_config), 4, 1);
+        return Yaml::dump(
+            array_merge($clash_config, $clash_nodes, $clash_group_config),
+            4,
+            1,
+            Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE
+        );
     }
 
     // SIP008 SS 订阅
@@ -423,12 +448,14 @@ final class SubController extends BaseController
     {
         $userid = $user->id;
         $token = Link::where('userid', $userid)->first();
+
         if ($token === null) {
             $token = new Link();
             $token->userid = $userid;
             $token->token = Tools::genSubToken();
             $token->save();
         }
+
         return $_ENV['subUrl'] . '/sub/' . $token->token;
     }
 }

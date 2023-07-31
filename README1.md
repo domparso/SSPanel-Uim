@@ -14,6 +14,7 @@
 [![Sonar Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=sspanel-uim_SSPanel-Uim-Dev&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=sspanel-uim_SSPanel-Uim-Dev)
 [![Sonar Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=sspanel-uim_SSPanel-Uim-Dev&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=sspanel-uim_SSPanel-Uim-Dev)
 [![Sonar Security Rating](https://sonarcloud.io/api/project_badges/measure?project=sspanel-uim_SSPanel-Uim-Dev&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=sspanel-uim_SSPanel-Uim-Dev)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=sspanel-uim_SSPanel-Uim-Dev&metric=coverage)](https://sonarcloud.io/summary/new_code?id=sspanel-uim_SSPanel-Uim-Dev)
 
 [配套Trojan后端](https://github.com/sspanel-uim/TrojanX) | [Telegram 水群](https://t.me/ssunion) | [Telegram 通知频道](https://t.me/sspanel_uim) | [Telegram 开发频道](https://t.me/sspanel_uim_dev) | [Discord Dev Center](https://discord.gg/A7uFKCvf8V) | [Dev Blog](https://blog.sspanel.org)
 
@@ -38,8 +39,9 @@ SSPanel UIM 的需要以下程序才能正常的安装和运行：
 - Nginx（必须使用 HTTPS/HTTPS is REQUIRED）
 - PHP 8.1+ （推荐开启 OPcache/OPcache is recommended）
 - MariaDB 10.6+（关闭严格模式，不兼容 MySQL/Disable strict mode, DO NOT USE MYSQL）
+- Redis 7.0+
 
-我们推荐用户在开始使用之前至少有一定程度的 PHP 和 Linux 使用知识，能够至少正确识别使用中所出现的问题并在 issue 中提供所需的信息。
+我们推荐用户在开始使用之前有一定程度的 PHP 和 Linux 使用知识，能够至少正确识别使用中所出现的问题并在 issue 中提供所需的信息。
 
 对于拒绝阅读文档且拒绝提供任何反馈的，我们建议其使用其他非开源的方案。
 

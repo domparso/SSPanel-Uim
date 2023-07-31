@@ -220,20 +220,25 @@ final class Tools
 
         $mail_suffix = explode('@', $email)[1];
         $mail_filter_list = $_ENV['mail_filter_list'];
-        $res['msg'] = '我们无法将邮件投递至域 ' . $mail_suffix . ' ，请更换邮件地址';
 
         switch ($_ENV['mail_filter']) {
             case 1:
                 // 白名单
                 if (in_array($mail_suffix, $mail_filter_list)) {
                     $res['ret'] = 1;
+                } else {
+                    $res['msg'] = '我们无法将邮件投递至域 ' . $mail_suffix . ' ，请更换邮件地址';
                 }
+
                 return $res;
             case 2:
                 // 黑名单
                 if (! in_array($mail_suffix, $mail_filter_list)) {
                     $res['ret'] = 1;
+                } else {
+                    $res['msg'] = '我们无法将邮件投递至域 ' . $mail_suffix . ' ，请更换邮件地址';
                 }
+
                 return $res;
             default:
                 $res['ret'] = 1;
@@ -271,8 +276,9 @@ final class Tools
     public static function genSubToken(): string
     {
         for ($i = 0; $i < 10; $i++) {
-            $token = self::genRandomChar(16);
+            $token = self::genRandomChar($_ENV['sub_token_len']);
             $is_token_used = Link::where('token', $token)->first();
+
             if ($is_token_used === null) {
                 return $token;
             }

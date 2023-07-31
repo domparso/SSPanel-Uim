@@ -2,7 +2,6 @@
 .htaccess
 */.DS_Store
 .DS_Store
-.php_cs.cache
 .env
 
 vendor
@@ -25,13 +24,13 @@ config/.config.php
 config/.config.php.bak
 config/appprofile.php
 
-public/clients/
+public/clients/*.*
+!public/clients/.gitkeep
 
 storage/framework/smarty/cache/*
 storage/framework/smarty/compile/*
 storage/framework/views/*
 storage/*.*
-/storage/traffic_notified/
 !storage/framework/smarty/cache/.gitkeep
 !storage/framework/smarty/compile/.gitkeep
 !storage/framework/views/.gitkeep
@@ -49,4 +48,5 @@ node_modules
 package.json
 package-lock.json
 
-.php-cs-fixer.cache
+*.cache
+

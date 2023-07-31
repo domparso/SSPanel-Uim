@@ -24,27 +24,21 @@ final class CouponController extends BaseController
         $antiXss = new AntiXSS();
         $coupon_raw = $antiXss->xss_clean($request->getParam('coupon'));
         $product_id = $antiXss->xss_clean($request->getParam('product_id'));
+        $invalid_coupon_msg = '优惠码无效';
 
-        if ($coupon_raw === null || $coupon_raw === '') {
+        if ($coupon_raw === '') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '优惠码不能为空',
+                'msg' => $invalid_coupon_msg,
             ]);
         }
 
         $coupon = UserCoupon::where('code', $coupon_raw)->first();
 
-        if ($coupon === null) {
+        if ($coupon === null || ($coupon->expire_time !== 0 && $coupon->expire_time < time())) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '优惠码无效',
-            ]);
-        }
-
-        if ($coupon->expire_time !== 0 && $coupon->expire_time < time()) {
-            return $response->withJson([
-                'ret' => 0,
-                'msg' => '优惠码无效',
+                'msg' => $invalid_coupon_msg,
             ]);
         }
 
@@ -53,40 +47,46 @@ final class CouponController extends BaseController
         if ($product === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '商品ID无效',
+                'msg' => $invalid_coupon_msg,
             ]);
         }
 
         $limit = json_decode($coupon->limit);
 
-        if ((int) $limit->disabled === 1) {
+        if ($limit->disabled) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '优惠码无效',
+                'msg' => $invalid_coupon_msg,
             ]);
         }
 
-        if ($limit->product_id !== '') {
-            $product_limit = explode(',', $limit->product_id);
-            if (! in_array($product_id, $product_limit)) {
-                return $response->withJson([
-                    'ret' => 0,
-                    'msg' => '优惠码无效',
-                ]);
-            }
+        if ($limit->product_id !== '' && ! in_array($product_id, explode(',', $limit->product_id))) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => $invalid_coupon_msg,
+            ]);
         }
 
         $user = $this->user;
         $use_limit = $limit->use_time;
 
         if ($use_limit > 0) {
-            $use_count = Order::where('user_id', $user->id)->where('coupon', $coupon->code)->count();
-            if ($use_count >= $use_limit) {
+            $user_use_count = Order::where('user_id', $user->id)->where('coupon', $coupon->code)->count();
+            if ($user_use_count >= $use_limit) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => '优惠码无效',
+                    'msg' => $invalid_coupon_msg,
                 ]);
             }
+        }
+
+        $total_use_limit = $limit->total_use_time;
+
+        if ($total_use_limit > 0 && $coupon->use_count >= $total_use_limit) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => $invalid_coupon_msg,
+            ]);
         }
 
         $content = json_decode($coupon->content);

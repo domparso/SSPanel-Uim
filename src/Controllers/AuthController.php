@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Models\EmailVerify;
 use App\Models\InviteCode;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Auth;
+use App\Services\Cache;
 use App\Services\Captcha;
 use App\Services\Mail;
+use App\Services\RateLimit;
 use App\Utils\Cookie;
 use App\Utils\Hash;
 use App\Utils\ResponseHelper;
@@ -19,6 +20,7 @@ use Exception;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Ramsey\Uuid\Uuid;
+use RedisException;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use Vectorface\GoogleAuthenticator;
@@ -83,6 +85,7 @@ final class AuthController extends BaseController
         if (! Hash::checkPassword($user->pass, $passwd)) {
             // 记录登录失败
             $user->collectLoginIP($_SERVER['REMOTE_ADDR'], 1);
+
             return $response->withJson([
                 'ret' => 0,
                 'msg' => '邮箱或者密码错误',
@@ -91,6 +94,9 @@ final class AuthController extends BaseController
 
         if ($user->ga_enable === 1) {
             if (strlen($code) !== 6) {
+                // 记录登录失败
+                $user->collectLoginIP($_SERVER['REMOTE_ADDR'], 1);
+
                 return $response->withJson([
                     'ret' => 0,
                     'msg' => '两步验证码错误',
@@ -101,6 +107,9 @@ final class AuthController extends BaseController
             $rcode = $ga->verifyCode($user->ga_token, $code);
 
             if (! $rcode) {
+                // 记录登录失败
+                $user->collectLoginIP($_SERVER['REMOTE_ADDR'], 1);
+
                 return $response->withJson([
                     'ret' => 0,
                     'msg' => '两步验证码错误',
@@ -149,11 +158,13 @@ final class AuthController extends BaseController
             ->fetch('auth/register.tpl'));
     }
 
+    /**
+     * @throws RedisException
+     */
     public function sendVerify(ServerRequest $request, Response $response, $next): Response|ResponseInterface
     {
         if (Setting::obtain('reg_email_verify')) {
             $antiXss = new AntiXSS();
-
             $email = strtolower(trim($antiXss->xss_clean($request->getParam('email'))));
 
             if ($email === '') {
@@ -166,32 +177,21 @@ final class AuthController extends BaseController
                 return $response->withJson($check_res);
             }
 
+            if (! RateLimit::checkEmailIpLimit($request->getServerParam('REMOTE_ADDR')) ||
+                ! RateLimit::checkEmailAddressLimit($email)
+            ) {
+                return ResponseHelper::error($response, '你的请求过于频繁，请稍后再试');
+            }
+
             $user = User::where('email', $email)->first();
+
             if ($user !== null) {
                 return ResponseHelper::error($response, '此邮箱已经注册');
             }
 
-            $ipcount = EmailVerify::where('ip', '=', $_SERVER['REMOTE_ADDR'])
-                ->where('expire_in', '>', time())
-                ->count();
-            if ($ipcount > Setting::obtain('email_verify_ip_limit')) {
-                return ResponseHelper::error($response, '此IP请求次数过多');
-            }
-
-            $mailcount = EmailVerify::where('email', '=', $email)
-                ->where('expire_in', '>', time())
-                ->count();
-            if ($mailcount > Setting::obtain('email_verify_email_limit')) {
-                return ResponseHelper::error($response, '此邮箱请求次数过多');
-            }
-
             $code = Tools::genRandomChar(6);
-            $ev = new EmailVerify();
-            $ev->expire_in = time() + Setting::obtain('email_verify_ttl');
-            $ev->ip = $_SERVER['REMOTE_ADDR'];
-            $ev->email = $email;
-            $ev->code = $code;
-            $ev->save();
+            $redis = Cache::initRedis();
+            $redis->setex($code, Setting::obtain('email_verify_code_ttl'), $email);
 
             try {
                 Mail::send(
@@ -200,16 +200,17 @@ final class AuthController extends BaseController
                     'verify_code.tpl',
                     [
                         'code' => $code,
-                        'expire' => date('Y-m-d H:i:s', time() + Setting::obtain('email_verify_ttl')),
+                        'expire' => date('Y-m-d H:i:s', time() + Setting::obtain('email_verify_code_ttl')),
                     ]
                 );
-            } catch (Exception | ClientExceptionInterface $e) {
+            } catch (Exception|ClientExceptionInterface $e) {
                 return ResponseHelper::error($response, '邮件发送失败，请联系网站管理员。');
             }
 
             return ResponseHelper::successfully($response, '验证码发送成功，请查收邮件。');
         }
-        return ResponseHelper::error($response, ' 不允许注册');
+
+        return ResponseHelper::error($response, '站点未启用邮件验证');
     }
 
     /**
@@ -253,7 +254,6 @@ final class AuthController extends BaseController
         $user->uuid = Uuid::uuid4();
         $user->api_token = Uuid::uuid4();
         $user->port = Tools::getAvPort();
-        $user->t = 0;
         $user->u = 0;
         $user->d = 0;
         $user->method = $configs['sign_up_for_method'];
@@ -267,7 +267,7 @@ final class AuthController extends BaseController
         $user->invite_num = $configs['sign_up_for_invitation_codes'];
         $user->auto_reset_day = Setting::obtain('free_user_reset_day');
         $user->auto_reset_bandwidth = Setting::obtain('free_user_reset_bandwidth');
-        $user->sendDailyMail = $configs['sign_up_for_daily_report'];
+        $user->daily_mail_enable = $configs['sign_up_for_daily_report'];
 
         if ($money > 0) {
             $user->money = $money;
@@ -291,7 +291,6 @@ final class AuthController extends BaseController
 
         $user->class_expire = date('Y-m-d H:i:s', time() + (int) $configs['sign_up_for_class_time'] * 86400);
         $user->class = $configs['sign_up_for_class'];
-        $user->node_connector = 0;
         $user->node_iplimit = $configs['connection_ip_limit'];
         $user->node_speedlimit = $configs['connection_rate_limit'];
         $user->expire_in = date('Y-m-d H:i:s', time() + (int) $configs['sign_up_for_free_time'] * 86400);
@@ -407,17 +406,15 @@ final class AuthController extends BaseController
         }
 
         if (Setting::obtain('reg_email_verify')) {
-            $email_code = trim($antiXss->xss_clean($request->getParam('emailcode')));
-            $email_verify = EmailVerify::where('email', '=', $email)
-                ->where('code', '=', $email_code)
-                ->where('expire_in', '>', time())
-                ->first();
+            $redis = Cache::initRedis();
+            $email_verify_code = trim($antiXss->xss_clean($request->getParam('emailcode')));
+            $email_verify = $redis->get($email_verify_code);
 
-            if ($email_verify === null) {
+            if (! $email_verify) {
                 return ResponseHelper::error($response, '你的邮箱验证码不正确');
             }
 
-            EmailVerify::where('email', $email)->delete();
+            $redis->del($email_verify_code);
         }
 
         return $this->registerHelper($response, $name, $email, $passwd, $code, $imtype, $imvalue, 0, 0, 0);

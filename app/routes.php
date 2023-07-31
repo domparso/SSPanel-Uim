@@ -98,6 +98,8 @@ return static function (Slim\App $app): void {
         $group->post('/payment/purchase/{type}', App\Services\Payment::class . ':purchase');
         $group->get('/payment/purchase/{type}', App\Services\Payment::class . ':purchase');
         $group->get('/payment/return/{type}', App\Services\Payment::class . ':returnHTML');
+        // Get Clients
+        $group->get('/clients/{name}', App\Controllers\User\ClientController::class . ':getClients');
     })->add(new Auth());
 
     $app->group('/payment', static function (RouteCollectorProxy $group): void {
@@ -169,7 +171,6 @@ return static function (Slim\App $app): void {
         $group->get('/user', App\Controllers\Admin\UserController::class . ':index');
         $group->get('/user/{id}/edit', App\Controllers\Admin\UserController::class . ':edit');
         $group->put('/user/{id}', App\Controllers\Admin\UserController::class . ':update');
-        $group->post('/user/changetouser', App\Controllers\Admin\UserController::class . ':changetouser');
         $group->post('/user/create', App\Controllers\Admin\UserController::class . ':createNewUser');
         $group->delete('/user/{id}', App\Controllers\Admin\UserController::class . ':delete');
         $group->post('/user/ajax', App\Controllers\Admin\UserController::class . ':ajax');
