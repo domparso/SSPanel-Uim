@@ -213,7 +213,8 @@
                                 {if $public_setting['enable_traditional_sub']}
                                     <div class="tab-pane show" id="traditional-sub">
                                         <div>
-                                            {if $public_setting['enable_ss_sub']}<p>
+                                            {if $public_setting['enable_ss_sub']}
+                                            <p>
                                                 传统订阅（Shadowsocks）：<code>{$TraditionalSub}?ss=1</code></p><p>
                                                 传统订阅（Shadowsocks SIP002）：<code>{$TraditionalSub}?sip002=1</code>
                                             </p>
@@ -225,19 +226,33 @@
                                                 传统订阅（Trojan）：<code>{$TraditionalSub}?trojan=1</code></p>
                                             {/if}
                                             <div class="btn-list justify-content-start">
-                                                {if $public_setting['enable_ss_sub']}<a data-clipboard-text="{$TraditionalSub}?ss=1"class="copy btn btn-primary">复制传统订阅（Shadowsocks）</a><a data-clipboard-text="{$TraditionalSub}?sip002=1" class="copy btn btn-primary">
+                                                {if $public_setting['enable_ss_sub']}
+                                                <a data-clipboard-text="{$TraditionalSub}?ss=1"class="copy btn btn-primary">
+                                                    复制传统订阅（Shadowsocks）
+                                                </a>
+                                                <a data-clipboard-text="{$TraditionalSub}?sip002=1" class="copy btn btn-primary">
                                                     复制传统订阅（Shadowsocks SIP002）
                                                 </a>
                                                 {/if}
-                                                {if $public_setting['enable_v2_sub']}<a data-clipboard-text="{$TraditionalSub}?v2ray=1"class="copy btn btn-primary">复制传统订阅（V2Ray）</a>
+                                                {if $public_setting['enable_v2_sub']}
+                                                    <a data-clipboard-text="{$TraditionalSub}?v2ray=1"class="copy btn btn-primary">复制传统订阅（V2Ray）</a>
                                                 {/if}
-                                                {if $public_setting['enable_trojan_sub']}<a data-clipboard-text="{$TraditionalSub}?trojan=1"class="copy btn btn-primary">复制传统订阅（Trojan）</a>
+                                                {if $public_setting['enable_trojan_sub']}
+                                                    <a data-clipboard-text="{$TraditionalSub}?trojan=1"class="copy btn btn-primary">复制传统订阅（Trojan）</a>
                                                 {/if}
-                                                <a href="/clients/v2rayN-Core.zip"
+                                                <a {if $config['enable_r2_client_download']}
+                                                        href="/user/clients/v2rayN-Core.zip"
+                                                    {else}
+                                                        href="/clients/v2rayN-Core.zip"
+                                                    {/if}
                                                    class="btn btn-primary">
                                                     下载 v2rayN（Windows）
                                                 </a>
-                                                <a href="/clients/v2rayNG.apk"
+                                                <a {if $config['enable_r2_client_download']}
+                                                        href="/user/clients/v2rayNG.apk"
+                                                    {else}
+                                                        href="/clients/v2rayNG.apk"
+                                                    {/if}
                                                    class="btn btn-primary">
                                                     下载 v2rayNG（Android）
                                                 </a>
@@ -257,7 +272,12 @@
                                                class="copy btn btn-primary">
                                                 复制 Clash 订阅链接
                                             </a>
-                                            <a href="/clients/Clash.Verge.msi"
+                                            <a
+                                               {if $config['enable_r2_client_download']}
+                                                    href="/user/clients/Clash.Verge.exe"
+                                               {else}
+                                                    href="/clients/Clash.Verge.exe"
+                                               {/if}
                                                class="btn btn-primary">
                                                 下载 Clash Verge
                                             </a>
@@ -281,11 +301,19 @@
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="/clients/Clash.Verge_aarch64.dmg"
+                                        <a {if $config['enable_r2_client_download']}
+                                                href="/user/clients/Clash.Verge_aarch64.dmg"
+                                            {else}
+                                                href="/clients/Clash.Verge_aarch64.dmg"
+                                            {/if}
                                            class="btn btn-primary">
                                             下载 Clash Verge (aarch64)
                                         </a>
-                                        <a href="/clients/Clash.Verge_x64.dmg"
+                                        <a {if $config['enable_r2_client_download']}
+                                                href="/user/clients/Clash.Verge_x64.dmg"
+                                            {else}
+                                                href="/clients/Clash.Verge_x64.dmg"
+                                            {/if}
                                            class="btn btn-primary">
                                             下载 Clash Verge (x86_64)
                                         </a>
@@ -306,7 +334,11 @@
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="/clients/Clash-Android.apk"
+                                        <a {if $config['enable_r2_client_download']}
+                                                href="/user/clients/Clash-Android.apk"
+                                            {else}
+                                                href="/clients/Clash-Android.apk"
+                                            {/if}
                                            class="btn btn-primary">
                                             下载 Clash for Android
                                         </a>
@@ -358,7 +390,11 @@
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="/clients/Clash.Verge.AppImage.tar.gz"
+                                        <a {if $config['enable_r2_client_download']}
+                                                href="/user/clients/Clash.Verge.AppImage.tar.gz"
+                                            {else}
+                                                href="/clients/Clash.Verge.AppImage.tar.gz"
+                                            {/if}
                                            class="btn btn-primary">
                                             下载 Clash Verge
                                         </a>
@@ -447,7 +483,7 @@
                             <i class="ti ti-bell-ringing icon"></i>
                         </div>
                         <div class="card-body">
-                            <h3 class="card-title">最新公告 
+                            <h3 class="card-title">最新公告
                             {if $ann !== null}
                             <span class="card-subtitle">{$ann->date}</span>
                             {/if}
@@ -511,7 +547,7 @@
                         </div>
                     </div>
                 {/if}
-                
+
             </div>
         </div>
     </div>
@@ -527,7 +563,7 @@
             $.ajax({
                 type: "POST",
                 url: "/user/checkin",
-                dataType: "json",              
+                dataType: "json",
                 data: {
                     {if $public_setting['enable_checkin_captcha'] && $user->isAbleToCheckin()}
                         {if $public_setting['captcha_provider'] === 'turnstile'}

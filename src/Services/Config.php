@@ -32,6 +32,19 @@ final class Config
 
             'subscribeLog' => $_ENV['subscribeLog'],
             'subscribeLog_keep_days' => $_ENV['subscribeLog_keep_days'],
+
+            'enable_r2_client_download' => $_ENV['enable_r2_client_download'],
+        ];
+    }
+
+    public static function getRedisConfig(): array
+    {
+        return [
+            'host' => $_ENV['redis_host'],
+            'port' => $_ENV['redis_port'],
+            'connectTimeout' => $_ENV['redis_timeout'],
+            'auth' => [$_ENV['redis_username'], $_ENV['redis_password']],
+            'ssl' => ['verify_peer' => $_ENV['redis_ssl']],
         ];
     }
 

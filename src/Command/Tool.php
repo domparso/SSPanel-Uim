@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Models\Link;
 use App\Models\Node;
 use App\Models\Setting;
 use App\Models\User as ModelsUser;
@@ -34,6 +35,7 @@ final class Tool extends Command
 │ ├─ createAdmin             - 创建管理员帐号
 │ ├─ resetAllPort            - 重置所有用户端口
 │ ├─ resetTraffic            - 重置所有用户流量
+│ ├─ clearSubToken           - 清除用户 Sub Token
 │ ├─ generateUUID            - 为所有用户生成新的 UUID
 │ ├─ generateGa              - 为所有用户生成新的 Ga Secret
 │ ├─ generateApiToken        - 为所有用户生成新的 API Token
@@ -61,9 +63,7 @@ EOL;
     public function setTelegram(): void
     {
         $WebhookUrl = $_ENV['baseUrl'] . '/telegram_callback?token=' . $_ENV['telegram_request_token'];
-
         $telegram = new Api($_ENV['telegram_token']);
-
         $telegram->removeWebhook();
 
         if ($telegram->setWebhook(['url' => $WebhookUrl])) {
@@ -88,6 +88,7 @@ EOL;
     public function exportAllSettings(): void
     {
         $settings = Setting::all();
+
         foreach ($settings as $setting) {
             // 因为主键自增所以即便设置为 null 也会在导入时自动分配 id
             // 同时避免多位开发者 pull request 时 settings.json 文件 id 重复所可能导致的冲突
@@ -154,10 +155,12 @@ EOL;
     public function resetNodePassword(): void
     {
         $nodes = Node::all();
+
         foreach ($nodes as $node) {
             $node->password = Tools::genRandomChar(32);
             $node->save();
         }
+
         echo '已重置所有节点密码' . PHP_EOL;
     }
 
@@ -168,6 +171,7 @@ EOL;
     {
         fwrite(STDOUT, '请输入用户id: ');
         $user = ModelsUser::find(trim(fgets(STDIN)));
+
         if ($user !== null) {
             $user->port = Tools::getAvPort();
             if ($user->save()) {
@@ -184,12 +188,15 @@ EOL;
     public function resetAllPort(): void
     {
         $users = ModelsUser::all();
+
         foreach ($users as $user) {
             $origin_port = $user->port;
             $user->port = Tools::getAvPort();
             echo '$origin_port=' . $origin_port . '&$user->port=' . $user->port . PHP_EOL;
             $user->save();
         }
+
+        echo 'reset all ports successful';
     }
 
     /**
@@ -198,7 +205,7 @@ EOL;
     public function resetTraffic(): void
     {
         try {
-            ModelsUser::where('enable', 1)->update([
+            ModelsUser::where('is_banned', 0)->update([
                 'd' => 0,
                 'u' => 0,
                 'transfer_today' => 0,
@@ -207,7 +214,18 @@ EOL;
             echo $e->getMessage();
             return;
         }
+
         echo 'reset traffic successful';
+    }
+
+    /**
+     * 清除用户 Sub Token
+     */
+    public function clearSubToken(): void
+    {
+        Link::query()->truncate();
+
+        echo 'clear Sub Token successful';
     }
 
     /**
@@ -216,10 +234,11 @@ EOL;
     public function generateUUID(): void
     {
         $users = ModelsUser::all();
+
         foreach ($users as $user) {
-            /** @var ModelsUser $user */
             $user->generateUUID();
         }
+
         echo 'generate UUID successful';
     }
 
@@ -229,6 +248,7 @@ EOL;
     public function generateGa(): void
     {
         $users = ModelsUser::all();
+
         foreach ($users as $user) {
             $secret = '';
             $ga = new GoogleAuthenticator();
@@ -242,6 +262,7 @@ EOL;
             $user->ga_token = $secret;
             $user->save();
         }
+
         echo 'generate Ga Secret successful';
     }
 
@@ -251,10 +272,11 @@ EOL;
     public function generateApiToken(): void
     {
         $users = ModelsUser::all();
+
         foreach ($users as $user) {
-            /** @var ModelsUser $user */
             $user->generateApiToken();
         }
+
         echo 'generate Api Token successful';
     }
 
@@ -285,8 +307,6 @@ EOL;
         }
 
         if (strtolower($y) === 'y') {
-            // create admin user
-            $configs = Setting::getClass('register');
             // do reg user
             $user = new ModelsUser();
             $user->user_name = 'Admin';
@@ -297,19 +317,19 @@ EOL;
             $user->uuid = Uuid::uuid4();
             $user->api_token = Uuid::uuid4();
             $user->port = Tools::getAvPort();
-            $user->t = 0;
             $user->u = 0;
             $user->d = 0;
-            $user->transfer_enable = Tools::toGB($configs['sign_up_for_free_traffic']);
-            $user->invite_num = $configs['sign_up_for_invitation_codes'];
+            $user->transfer_enable = 0;
+            $user->invite_num = 0;
             $user->ref_by = 0;
             $user->is_admin = 1;
-            $user->expire_in = date('Y-m-d H:i:s', time() + $configs['sign_up_for_free_time'] * 86400);
+            $user->expire_in = date('Y-m-d H:i:s');
             $user->reg_date = date('Y-m-d H:i:s');
             $user->money = 0;
             $user->im_type = 1;
             $user->im_value = '';
             $user->class = 0;
+            $user->node_iplimit = 0;
             $user->node_speedlimit = 0;
             $user->theme = $_ENV['theme'];
 

@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Models\Setting;
 use App\Services\CronDetect;
 use App\Services\CronJob;
+use Exception;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use function mktime;
 use function time;
@@ -19,6 +20,7 @@ EOL;
 
     /**
      * @throws TelegramSDKException
+     * @throws Exception
      */
     public function boot(): void
     {
@@ -32,11 +34,12 @@ EOL;
 
         // Run new shop related jobs
         $jobs->processPendingOrder();
-        $jobs->processOrderActivation();
+        $jobs->processTabpOrderActivation();
+        $jobs->processBandwidthOrderActivation();
+        $jobs->processTimeOrderActivation();
 
         // Run user related jobs
         $jobs->expirePaidUserAccount();
-        $jobs->expireFreeUserAccount();
         $jobs->sendPaidUserUsageLimitNotification();
 
         // Run node related jobs
@@ -57,10 +60,13 @@ EOL;
             time() - Setting::obtain('last_daily_job_time') > 86399
         ) {
             $jobs->cleanDb();
-            $jobs->cleanUser();
             $jobs->resetNodeBandwidth();
             $jobs->resetFreeUserTraffic();
             $jobs->sendDailyTrafficReport();
+
+            if (Setting::obtain('enable_detect_inactive_user')) {
+                $jobs->detectInactiveUser();
+            }
 
             if (Setting::obtain('telegram_diary')) {
                 $jobs->sendTelegramDiary();
