@@ -68,11 +68,11 @@
         is360 = true;
     }
 
-    for (const key in navigator.plugins) {
-        if (navigator.plugins[key].filename == 'internal-nacl-plugin') {
-            is360 = true;
-        }
-    }
+    // for (const key in navigator.plugins) {
+    //     if (navigator.plugins[key].filename == 'internal-nacl-plugin') {
+    //         is360 = true;
+    //     }
+    // }
 
     if (
         matchUserAgent('MSIE') ||
