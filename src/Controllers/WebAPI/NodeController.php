@@ -11,6 +11,7 @@ use App\Utils\ResponseHelper;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use Slim\Factory\AppFactory;
 use function json_decode;
 use function json_encode;
 use function time;
@@ -21,6 +22,14 @@ final class NodeController extends BaseController
     public function saveReport(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $node_id = $request->getParam('node_id');
+        $ip = $request->getServerParam('REMOTE_ADDR');
+        if ($_ENV['checkNodeIp'] && ! $this->ckeckNodeIp($ip, $node_id)) {
+            return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
+                'ret' => 0,
+                'data' => 'Invalid request IP.',
+            ]);
+        }
+
         $content = $request->getParam('content');
         $result = json_decode(base64_decode($content), true);
         $report = new StreamMedia();
@@ -45,6 +54,15 @@ final class NodeController extends BaseController
             ];
             return $response->withJson($res);
         }
+
+        $ip = $request->getServerParam('REMOTE_ADDR');
+        if ($ip !== '127.0.0.1' && $node->node_ip !== $ip) {
+            return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
+                'ret' => 0,
+                'data' => 'Invalid request IP.',
+            ]);
+        }
+
         if ($node->sort === 0) {
             $node_explode = explode(';', $node->server);
             $node_server = $node_explode[0];
@@ -69,4 +87,15 @@ final class NodeController extends BaseController
             'data' => $data,
         ]);
     }
+
+    public function ckeckNodeIp($ip, $node_id): bool
+    {
+        $node = Node::find($node_id);
+        if ($ip !== '127.0.0.1' && $node->node_ip !== $ip) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 }

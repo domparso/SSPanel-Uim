@@ -31,16 +31,21 @@ final class NodeToken implements MiddlewareInterface
         }
 
         $antiXss = new AntiXSS();
-
-        if ($_ENV['enable_rate_limit'] &&
-            (! RateLimit::checkIPLimit($request->getServerParam('REMOTE_ADDR')) ||
-            ! RateLimit::checkWebAPILimit($antiXss->xss_clean($key)))
-        ) {
-            return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
-                'ret' => 0,
-                'data' => 'Invalid request.',
-            ]);
-        }
+//        var_dump("key", $key);
+//        var_dump("key", $request->getServerParam('REMOTE_ADDR'));
+//        var_dump("key", RateLimit::checkIPLimit($request->getServerParam('REMOTE_ADDR')));
+//        var_dump("key", $antiXss->xss_clean($key));
+//        var_dump("key", RateLimit::checkWebAPILimit($antiXss->xss_clean($key)));
+//        if ($_ENV['enable_rate_limit'] &&
+//            (! RateLimit::checkIPLimit($request->getServerParam('REMOTE_ADDR')) ||
+//            ! RateLimit::checkWebAPILimit($antiXss->xss_clean($key)))
+//        ) {
+//
+//            return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
+//                'ret' => 0,
+//                'data' => 'Invalid request.',
+//            ]);
+//        }
 
         if (! $_ENV['WebAPI'] || $key !== $_ENV['muKey']) {
             return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
