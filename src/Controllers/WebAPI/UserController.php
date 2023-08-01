@@ -12,6 +12,7 @@ use App\Utils\ResponseHelper;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use Slim\Factory\AppFactory;
 use function count;
 use function filter_var;
 use function is_array;
@@ -40,6 +41,14 @@ final class UserController extends BaseController
         if ($node === null) {
             return $response->withJson([
                 'ret' => 0,
+            ]);
+        }
+
+        $ip = $request->getServerParam('REMOTE_ADDR');
+        if ($ip !== '127.0.0.1' && $node->node_ip !== $ip) {
+            return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
+                'ret' => 0,
+                'data' => 'Invalid request IP.',
             ]);
         }
 
@@ -278,5 +287,15 @@ final class UserController extends BaseController
             'ret' => 1,
             'data' => 'ok',
         ]);
+    }
+
+    public function ckeckNodeIp($ip, $node_id): bool
+    {
+        $node = Node::find($node_id);
+        if ($ip !== '127.0.0.1' && $node->node_ip !== $ip) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }
