@@ -12,4 +12,4 @@ SSPanel UIM 是一款专为 Shadowsocks / V2Ray / Trojan 协议设计的多用�
 
 本项目基于[Anankke/SSPanel-Uim](https://github.com/Anankke/SSPanel-Uim.git)代码进行小幅修改
 
-更新至2023.4
+更新至2023.6

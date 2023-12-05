@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Controllers\Admin\Setting;
 
 use App\Controllers\BaseController;
-use App\Models\Setting;
+use App\Models\Config;
 use Exception;
-use function json_encode;
 
 final class CronController extends BaseController
 {
-    public static array $update_field = [
+    private static array $update_field = [
         'daily_job_hour',
         'daily_job_minute',
         'enable_daily_finance_mail',
@@ -28,18 +27,9 @@ final class CronController extends BaseController
     /**
      * @throws Exception
      */
-    public function cron($request, $response, $args)
+    public function index($request, $response, $args)
     {
-        $settings = [];
-        $settings_raw = Setting::get(['item', 'value', 'type']);
-
-        foreach ($settings_raw as $setting) {
-            if ($setting->type === 'bool') {
-                $settings[$setting->item] = (bool) $setting->value;
-            } else {
-                $settings[$setting->item] = (string) $setting->value;
-            }
-        }
+        $settings = Config::getClass('cron');
 
         return $response->write(
             $this->view()
@@ -49,7 +39,7 @@ final class CronController extends BaseController
         );
     }
 
-    public function saveCron($request, $response, $args)
+    public function save($request, $response, $args)
     {
         $daily_job_hour = (int) $request->getParam('daily_job_hour');
         $daily_job_minute = (int) $request->getParam('daily_job_minute');
@@ -68,23 +58,16 @@ final class CronController extends BaseController
             ]);
         }
 
-        $list = self::$update_field;
-
-        foreach ($list as $item) {
-            $setting = Setting::where('item', '=', $item)->first();
-
-            if ($setting->type === 'array') {
-                $setting->value = json_encode($request->getParam($item));
-            } elseif ($setting->item === 'daily_job_minute') {
-                $setting->value = $daily_job_minute - ($daily_job_minute % 5);
-            } else {
-                $setting->value = $request->getParam($item);
+        foreach (self::$update_field as $item) {
+            if ($item === 'daily_job_minute') {
+                Config::set($item, $daily_job_minute - ($daily_job_minute % 5));
+                continue;
             }
 
-            if (! $setting->save()) {
+            if (! Config::set($item, $request->getParam($item))) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => "保存 {$item} 时出错",
+                    'msg' => '保存 ' . $item . ' 时出错',
                 ]);
             }
         }

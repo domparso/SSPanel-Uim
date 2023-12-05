@@ -21,11 +21,11 @@ final class FuncController extends BaseController
         ]);
     }
 
-    public function getDetectLogs(ServerRequest $request, Response $response, array $args): ResponseInterface
+    public function getDetectRules(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $rules = DetectRule::all();
 
-        return ResponseHelper::etagJson($request, $response, [
+        return ResponseHelper::successWithDataEtag($request, $response, [
             'ret' => 1,
             'data' => $rules,
         ]);

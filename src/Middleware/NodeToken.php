@@ -47,7 +47,7 @@ final class NodeToken implements MiddlewareInterface
 //            ]);
 //        }
 
-        if (! $_ENV['WebAPI'] || $key !== $_ENV['muKey']) {
+        if (! $_ENV['WebAPI'] || $key !== $_ENV['muKey'] || 'https://' . $request->getHeaderLine('Host') !== $_ENV['webAPIUrl']) {
             return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
                 'ret' => 0,
                 'data' => 'Invalid request.',
@@ -56,7 +56,8 @@ final class NodeToken implements MiddlewareInterface
 
         if ($_ENV['checkNodeIp']) {
             $ip = $request->getServerParam('REMOTE_ADDR');
-            if ($ip !== '127.0.0.1' && ! Node::where('node_ip', 'LIKE', "{$ip}%")->exists()) {
+
+            if ($ip !== '127.0.0.1' && ! Node::where('node_ip', $ip)->exists()) {
                 return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
                     'ret' => 0,
                     'data' => 'Invalid request IP.',

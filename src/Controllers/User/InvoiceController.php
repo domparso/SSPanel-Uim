@@ -20,7 +20,7 @@ use function time;
 
 final class InvoiceController extends BaseController
 {
-    public static array $details = [
+    private static array $details = [
         'field' => [
             'op' => '操作',
             'id' => '账单ID',
@@ -36,7 +36,7 @@ final class InvoiceController extends BaseController
     /**
      * @throws Exception
      */
-    public function invoice(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -86,7 +86,7 @@ final class InvoiceController extends BaseController
         $antiXss = new AntiXSS();
         $invoice_id = $antiXss->xss_clean($request->getParam('invoice_id'));
 
-        $invoice = Invoice::where("user_id", $this->user->id)->where("id", $invoice_id)->first();
+        $invoice = Invoice::where('user_id', $this->user->id)->where('id', $invoice_id)->first();
 
         if ($invoice === null) {
             return $response->withJson([
@@ -96,6 +96,13 @@ final class InvoiceController extends BaseController
         }
 
         $user = $this->user;
+
+        if ($user->is_shadow_banned) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '支付失败，请稍后再试',
+            ]);
+        }
 
         if ($user->money < $invoice->price) {
             return $response->withJson([
@@ -108,7 +115,7 @@ final class InvoiceController extends BaseController
         $user->money -= $invoice->price;
         $user->save();
 
-        (new UserMoneyLog())->addMoneyLog(
+        (new UserMoneyLog())->add(
             $user->id,
             (float) $money_before,
             (float) $user->money,

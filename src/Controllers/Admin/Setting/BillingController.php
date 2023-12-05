@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin\Setting;
 
 use App\Controllers\BaseController;
-use App\Models\Setting;
+use App\Models\Config;
 use App\Services\Payment;
 use Exception;
 use function json_decode;
@@ -13,7 +13,7 @@ use function json_encode;
 
 final class BillingController extends BaseController
 {
-    public static array $update_field = [
+    private static array $update_field = [
         // 支付宝当面付
         'f2f_pay_app_id',
         'f2f_pay_pid',
@@ -34,6 +34,7 @@ final class BillingController extends BaseController
         'epay_url',
         'epay_pid',
         'epay_key',
+        'epay_sign_type',
         'epay_alipay',
         'epay_wechat',
         'epay_qq',
@@ -49,18 +50,9 @@ final class BillingController extends BaseController
     /**
      * @throws Exception
      */
-    public function billing($request, $response, $args)
+    public function index($request, $response, $args)
     {
-        $settings = [];
-        $settings_raw = Setting::get(['item', 'value', 'type']);
-
-        foreach ($settings_raw as $setting) {
-            if ($setting->type === 'bool') {
-                $settings[$setting->item] = (bool) $setting->value;
-            } else {
-                $settings[$setting->item] = (string) $setting->value;
-            }
-        }
+        $settings = Config::getClass('billing');
 
         return $response->write(
             $this->view()
@@ -72,7 +64,7 @@ final class BillingController extends BaseController
         );
     }
 
-    public function saveBilling($request, $response, $args)
+    public function save($request, $response, $args)
     {
         $gateway_in_use = [];
 
@@ -83,7 +75,7 @@ final class BillingController extends BaseController
             }
         }
 
-        $gateway = Setting::where('item', '=', 'payment_gateway')->first();
+        $gateway = Config::where('item', 'payment_gateway')->first();
         $gateway->value = json_encode($gateway_in_use);
 
         if (! $gateway->save()) {
@@ -93,21 +85,11 @@ final class BillingController extends BaseController
             ]);
         }
 
-        $list = self::$update_field;
-
-        foreach ($list as $item) {
-            $setting = Setting::where('item', '=', $item)->first();
-
-            if ($setting->type === 'array') {
-                $setting->value = json_encode($request->getParam($item));
-            } else {
-                $setting->value = $request->getParam($item);
-            }
-
-            if (! $setting->save()) {
+        foreach (self::$update_field as $item) {
+            if (! Config::set($item, $request->getParam($item))) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => "保存 {$item} 时出错",
+                    'msg' => '保存 ' . $item . ' 时出错',
                 ]);
             }
         }
@@ -131,7 +113,7 @@ final class BillingController extends BaseController
 
     public function returnActiveGateways()
     {
-        $payment_gateways = Setting::where('item', '=', 'payment_gateway')->first();
+        $payment_gateways = Config::where('item', 'payment_gateway')->first();
         return json_decode($payment_gateways->value);
     }
 }

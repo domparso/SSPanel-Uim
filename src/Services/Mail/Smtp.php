@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mail;
 
-use App\Models\Setting;
+use App\Models\Config;
 use Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -13,11 +13,11 @@ final class Smtp extends Base
     private PHPMailer $mail;
 
     /**
-     * @throws \PHPMailer\PHPMailer\Exception
+     * @throws Exception
      */
     public function __construct()
     {
-        $configs = Setting::getClass('smtp');
+        $configs = Config::getClass('email');
 
         $mail = new PHPMailer();
         //$mail->SMTPDebug = 3;                               // Enable verbose debug output
@@ -43,18 +43,20 @@ final class Smtp extends Base
     }
 
     /**
-     * @throws \PHPMailer\PHPMailer\Exception
      * @throws Exception
      */
-    public function send($to, $subject, $text, $file): void
+    public function send($to, $subject, $text, $files): void
     {
         $mail = $this->mail;
         $mail->addAddress($to);     // Add a recipient
         $mail->isHTML();
         $mail->Subject = $subject;
         $mail->Body = $text;
-        foreach ($file as $file_raw) {
-            $mail->addAttachment($file_raw);
+
+        if ($files !== []) {
+            foreach ($files as $file_raw) {
+                $mail->addAttachment($file_raw);
+            }
         }
 
         if (! $mail->send()) {

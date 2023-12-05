@@ -4,26 +4,27 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+use App\Models\Config;
 use App\Models\Link;
-use App\Models\Paylist;
-use App\Models\Setting;
 use App\Models\User;
-use App\Services\Config;
+use App\Services\GeoIP2;
 use GeoIp2\Exception\AddressNotFoundException;
 use MaxMind\Db\Reader\InvalidDatabaseException;
 use function array_diff;
 use function array_flip;
+use function base64_encode;
 use function bin2hex;
 use function closedir;
 use function date;
 use function explode;
 use function filter_var;
-use function floatval;
 use function floor;
+use function hash;
 use function in_array;
-use function is_null;
 use function is_numeric;
+use function json_decode;
 use function log;
+use function mb_strcut;
 use function opendir;
 use function openssl_random_pseudo_bytes;
 use function pow;
@@ -33,9 +34,7 @@ use function round;
 use function shuffle;
 use function strlen;
 use function strpos;
-use function strtotime;
 use function substr;
-use function time;
 use const FILTER_FLAG_IPV4;
 use const FILTER_FLAG_IPV6;
 use const FILTER_VALIDATE_EMAIL;
@@ -47,10 +46,13 @@ final class Tools
     /**
      * 查询IP归属
      *
-     * @throws AddressNotFoundException
+     * @param string $ip
+     *
+     * @return string
+     *
      * @throws InvalidDatabaseException
      */
-    public static function getIpLocation($ip): string
+    public static function getIpLocation(string $ip): string
     {
         $err_msg = '';
         $city = null;
@@ -61,8 +63,17 @@ final class Tools
         } else {
             if(is_file(BASE_PATH . '/storage/GeoLite2-City/GeoLite2-City.mmdb') and is_file(BASE_PATH . '/storage/GeoLite2-Country/GeoLite2-Country.mmdb')){
                 $geoip = new GeoIP2();
-                $city = $geoip->getCity($ip);
-                $country = $geoip->getCountry($ip);
+                try {
+                    $city = $geoip->getCity($ip);
+                } catch (AddressNotFoundException $e) {
+                    $city = '未知城市';
+                }
+
+                try {
+                    $country = $geoip->getCountry($ip);
+                } catch (AddressNotFoundException $e) {
+                    $country = '未知国家';
+                }
             }
         }
 
@@ -79,8 +90,13 @@ final class Tools
 
     /**
      * 根据流量值自动转换单位输出
+     *
+     * @param $size
+     * @param int $precision
+     *
+     * @return string
      */
-    public static function autoBytes($size, $precision = 2): string
+    public static function autoBytes($size, int $precision = 2): string
     {
         if ($size <= 0) {
             return '0B';
@@ -98,6 +114,10 @@ final class Tools
 
     /**
      * 根据含单位的流量值转换 B 输出
+     *
+     * @param $size
+     *
+     * @return int|null
      */
     public static function autoBytesR($size): ?int
     {
@@ -116,35 +136,106 @@ final class Tools
         return (int) ($base * pow(1024, array_flip($units)[$suffix]));
     }
 
-    //虽然名字是toMB，但是实际上功能是from MB to B
-    public static function toMB($traffic): float|int
+    /**
+     * 根据速率值自动转换单位输出
+     *
+     * @param $size
+     * @param int $precision
+     *
+     * @return string
+     */
+    public static function autoMbps($size, int $precision = 2): string
     {
-        $mb = 1048576;
-        return $traffic * $mb;
+        if ($size <= 0) {
+            return '0Bps';
+        }
+
+        if ($size > 1000000000) {
+            return '∞';
+        }
+
+        $base = log((float) $size, 1000);
+        $units = ['Mbps', 'Gbps', 'Tbps'];
+
+        return round(pow(1000, $base - floor($base)), $precision) . $units[floor($base)];
+    }
+
+    //虽然名字是toMB，但是实际上功能是from MB to B
+
+    /**
+     * @param $traffic
+     *
+     * @return int
+     */
+    public static function toMB($traffic): int
+    {
+        return (int) $traffic * 1048576;
     }
 
     //虽然名字是toGB，但是实际上功能是from GB to B
-    public static function toGB($traffic): float|int
+
+    /**
+     * @param $traffic
+     *
+     * @return int
+     */
+    public static function toGB($traffic): int
     {
-        $gb = 1048576 * 1024;
-        return $traffic * $gb;
+        return (int) $traffic * 1073741824;
     }
 
+    /**
+     * @param $traffic
+     *
+     * @return float
+     */
     public static function flowToGB($traffic): float
     {
-        $gb = 1048576 * 1024;
-        return $traffic / $gb;
+        return round($traffic / 1073741824, 2);
     }
 
+    /**
+     * @param $traffic
+     *
+     * @return float
+     */
     public static function flowToMB($traffic): float
     {
-        $gb = 1048576;
-        return $traffic / $gb;
+        return round($traffic / 1048576, 2);
     }
 
-    public static function genRandomChar($length = 8): string
+    public static function genSubToken(): string
     {
+        $token = self::genRandomChar($_ENV['sub_token_len']);
+        $is_token_used = Link::where('token', $token)->first();
+
+        if ($is_token_used === null) {
+            return $token;
+        }
+
+        return "couldn't alloc token";
+    }
+
+    public static function genRandomChar(int $length = 8): string
+    {
+        if ($length <= 2) {
+            $length = 2;
+        }
+
         return bin2hex(openssl_random_pseudo_bytes($length / 2));
+    }
+
+    public static function genSs2022UserPk($passwd, $len): string
+    {
+        $passwd_hash = hash('sha256', $passwd);
+
+        $pk = match ($len) {
+            16 => mb_strcut($passwd_hash, 0, 16),
+            32 => mb_strcut($passwd_hash, 0, 32),
+            default => $passwd_hash,
+        };
+
+        return base64_encode($pk);
     }
 
     public static function toDateTime(int $time): string
@@ -152,23 +243,28 @@ final class Tools
         return date('Y-m-d H:i:s', $time);
     }
 
-    public static function getAvPort()
+    public static function getSsPort(): int
     {
-        if (Setting::obtain('min_port') > 65535
-            || Setting::obtain('min_port') <= 0
-            || Setting::obtain('max_port') > 65535
-            || Setting::obtain('max_port') <= 0
+        if (Config::obtain('min_port') > 65535
+            || Config::obtain('min_port') <= 0
+            || Config::obtain('max_port') > 65535
+            || Config::obtain('max_port') <= 0
         ) {
             return 0;
         }
 
         $det = User::pluck('port')->toArray();
-        $port = array_diff(range(Setting::obtain('min_port'), Setting::obtain('max_port')), $det);
+        $port = array_diff(range(Config::obtain('min_port'), Config::obtain('max_port')), $det);
         shuffle($port);
 
         return $port[0];
     }
 
+    /**
+     * @param $dir
+     *
+     * @return array
+     */
     public static function getDir($dir): array
     {
         $dirArray = [];
@@ -176,21 +272,29 @@ final class Tools
 
         if ($handle !== false) {
             $i = 0;
+
             while (($file = readdir($handle)) !== false) {
                 if ($file !== '.' && $file !== '..' && ! strpos($file, '.')) {
                     $dirArray[$i] = $file;
                     $i++;
                 }
             }
+
             closedir($handle);
         }
 
         return $dirArray;
     }
 
+    /**
+     * @param $type
+     * @param $str
+     *
+     * @return bool
+     */
     public static function isParamValidate($type, $str): bool
     {
-        $list = Config::getSupportParam($type);
+        $list = self::getSsMethod($type);
 
         if (in_array($str, $list)) {
             return true;
@@ -199,15 +303,30 @@ final class Tools
         return false;
     }
 
-    public static function isEmail($input): bool
+    public static function getSsMethod($type): array
     {
-        if (filter_var($input, FILTER_VALIDATE_EMAIL) === false) {
-            return false;
-        }
-
-        return true;
+        return match ($type) {
+            'ss_obfs' => [
+                'simple_obfs_http',
+                'simple_obfs_http_compatible',
+                'simple_obfs_tls',
+                'simple_obfs_tls_compatible',
+            ],
+            default => [
+                'aes-128-gcm',
+                'aes-192-gcm',
+                'aes-256-gcm',
+                'chacha20-ietf-poly1305',
+                'xchacha20-ietf-poly1305',
+            ],
+        };
     }
 
+    /**
+     * @param $email
+     *
+     * @return array
+     */
     public static function isEmailLegal($email): array
     {
         $res = [];
@@ -227,7 +346,7 @@ final class Tools
                 if (in_array($mail_suffix, $mail_filter_list)) {
                     $res['ret'] = 1;
                 } else {
-                    $res['msg'] = '我们无法将邮件投递至域 ' . $mail_suffix . ' ，请更换邮件地址';
+                    $res['msg'] = '邮箱域名 ' . $mail_suffix . ' 无效，请更换邮件地址';
                 }
 
                 return $res;
@@ -236,7 +355,7 @@ final class Tools
                 if (! in_array($mail_suffix, $mail_filter_list)) {
                     $res['ret'] = 1;
                 } else {
-                    $res['msg'] = '我们无法将邮件投递至域 ' . $mail_suffix . ' ，请更换邮件地址';
+                    $res['msg'] = '邮箱域名 ' . $mail_suffix . ' 无效，请更换邮件地址';
                 }
 
                 return $res;
@@ -246,63 +365,75 @@ final class Tools
         }
     }
 
-    public static function isIPv4($input): bool
+    /**
+     * @param $input
+     *
+     * @return bool
+     */
+    public static function isEmail($input): bool
     {
-        if (filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+        if (! filter_var($input, FILTER_VALIDATE_EMAIL)) {
             return false;
         }
 
         return true;
-    }
-
-    public static function isIPv6($input): bool
-    {
-        if (filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public static function isInt($input): bool
-    {
-        if (filter_var($input, FILTER_VALIDATE_INT) === false) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public static function genSubToken(): string
-    {
-        for ($i = 0; $i < 10; $i++) {
-            $token = self::genRandomChar($_ENV['sub_token_len']);
-            $is_token_used = Link::where('token', $token)->first();
-
-            if ($is_token_used === null) {
-                return $token;
-            }
-        }
-
-        return "couldn't alloc token";
     }
 
     /**
-     * 获取累计收入
+     * @param $input
+     *
+     * @return bool
      */
-    public static function getIncome(string $req): float
+    public static function isIPv4($input): bool
     {
-        $today = strtotime('00:00:00');
-        $number = match ($req) {
-            'today' => Paylist::where('status', 1)
-                ->whereBetween('datetime', [$today, time()])->sum('total'),
-            'yesterday' => Paylist::where('status', 1)
-                ->whereBetween('datetime', [strtotime('-1 day', $today), $today])->sum('total'),
-            'this month' => Paylist::where('status', 1)
-                ->whereBetween('datetime', [strtotime('first day of this month 00:00:00'), time()])->sum('total'),
-            default => Paylist::where('status', 1)->sum('total'),
-        };
+        if (! filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return false;
+        }
 
-        return is_null($number) ? 0.00 : round(floatval($number), 2);
+        return true;
+    }
+
+    /**
+     * @param $input
+     *
+     * @return bool
+     */
+    public static function isIPv6($input): bool
+    {
+        if (! filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param $input
+     *
+     * @return bool
+     */
+    public static function isInt($input): bool
+    {
+        if (! filter_var($input, FILTER_VALIDATE_INT)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 判断是否 JSON
+     *
+     * @param string $string
+     *
+     * @return bool
+     */
+    public static function isJson(string $string): bool
+    {
+        if (! json_decode($string)) {
+            return false;
+        }
+
+        return true;
     }
 }

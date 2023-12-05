@@ -9,9 +9,6 @@ use App\Services\Auth;
 use App\Services\View;
 use Smarty;
 
-/**
- * BaseController
- */
 abstract class BaseController
 {
     /**
@@ -46,6 +43,7 @@ abstract class BaseController
                     ->getQueryLog()
             )->assign('optTime', (microtime(true) - View::$beginTime) * 1000);
         }
+
         return $this->view;
     }
 }

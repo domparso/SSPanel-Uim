@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Controllers\Admin\Setting;
 
 use App\Controllers\BaseController;
-use App\Models\Setting;
+use App\Models\Config;
 use Exception;
-use function json_encode;
 
 final class SupportController extends BaseController
 {
-    public static array $update_field = [
+    private static array $update_field = [
         'live_chat',
         'tawk_id',
         'crisp_id',
@@ -20,23 +19,15 @@ final class SupportController extends BaseController
         // Ticket
         'enable_ticket',
         'mail_ticket',
+        'ticket_limit',
     ];
 
     /**
      * @throws Exception
      */
-    public function support($request, $response, $args)
+    public function index($request, $response, $args)
     {
-        $settings = [];
-        $settings_raw = Setting::get(['item', 'value', 'type']);
-
-        foreach ($settings_raw as $setting) {
-            if ($setting->type === 'bool') {
-                $settings[$setting->item] = (bool) $setting->value;
-            } else {
-                $settings[$setting->item] = (string) $setting->value;
-            }
-        }
+        $settings = Config::getClass('support');
 
         return $response->write(
             $this->view()
@@ -46,23 +37,13 @@ final class SupportController extends BaseController
         );
     }
 
-    public function saveSupport($request, $response, $args)
+    public function save($request, $response, $args)
     {
-        $list = self::$update_field;
-
-        foreach ($list as $item) {
-            $setting = Setting::where('item', '=', $item)->first();
-
-            if ($setting->type === 'array') {
-                $setting->value = json_encode($request->getParam($item));
-            } else {
-                $setting->value = $request->getParam($item);
-            }
-
-            if (! $setting->save()) {
+        foreach (self::$update_field as $item) {
+            if (! Config::set($item, $request->getParam($item))) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => "保存 {$item} 时出错",
+                    'msg' => '保存 ' . $item . ' 时出错',
                 ]);
             }
         }

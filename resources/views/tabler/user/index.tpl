@@ -1,5 +1,7 @@
 {include file='user/header.tpl'}
 
+<script src="//{$config['jsdelivr_url']}/npm/clipboard@latest/dist/clipboard.min.js"></script>
+
 <div class="page-wrapper">
     <div class="container-xl">
         <div class="page-header d-print-none text-white">
@@ -111,7 +113,8 @@
                                             </div>
                                             <div class="text-secondary">
                                                 {if $user->node_speedlimit !== 0.0}
-                                                    <code>{$user->node_speedlimit}</code> Mbps
+                                                    <code>{$user->node_speedlimit}</code>
+                                                    Mbps
                                                 {else}
                                                     不限制
                                                 {/if}
@@ -187,6 +190,9 @@
                                         <p>
                                             通用订阅（clash）：<code>{$UniversalSub}/clash</code>
                                         </p>
+                                        <p>
+                                            通用订阅（sing-box）：<code>{$UniversalSub}/singbox</code>
+                                        </p>
                                         {if $public_setting['enable_ss_sub']}
                                             <p>
                                                 通用订阅（sip008）：<code>{$UniversalSub}/sip008</code>
@@ -201,6 +207,10 @@
                                                class="copy btn btn-primary">
                                                 复制通用订阅（clash）
                                             </a>
+                                            <a data-clipboard-text="{$UniversalSub}/singbox"
+                                               class="copy btn btn-primary">
+                                                复制通用订阅（sing-box）
+                                            </a>
                                             {if $public_setting['enable_ss_sub']}
                                                 <a data-clipboard-text="{$UniversalSub}/sip008"
                                                    class="copy btn btn-primary">
@@ -214,48 +224,45 @@
                                     <div class="tab-pane show" id="traditional-sub">
                                         <div>
                                             {if $public_setting['enable_ss_sub']}
-                                            <p>
-                                                传统订阅（Shadowsocks）：<code>{$TraditionalSub}?ss=1</code></p><p>
-                                                传统订阅（Shadowsocks SIP002）：<code>{$TraditionalSub}?sip002=1</code>
-                                            </p>
+                                                <p>
+                                                    传统订阅（Shadowsocks）：<code>{$TraditionalSub}?ss=1</code></p>
+                                                <p>
+                                                    传统订阅（Shadowsocks SIP002）：<code>{$TraditionalSub}?sip002=1</code>
+                                                </p>
                                             {/if}
-                                            {if $public_setting['enable_v2_sub']}<p>
-                                                传统订阅（V2Ray）：<code>{$TraditionalSub}?v2ray=1</code></p>
+                                            {if $public_setting['enable_v2_sub']}
+                                                <p>
+                                                    传统订阅（V2Ray）：<code>{$TraditionalSub}?v2ray=1</code>
+                                                </p>
                                             {/if}
-                                            {if $public_setting['enable_trojan_sub']}<p>
-                                                传统订阅（Trojan）：<code>{$TraditionalSub}?trojan=1</code></p>
+                                            {if $public_setting['enable_trojan_sub']}
+                                                <p>
+                                                    传统订阅（Trojan）：<code>{$TraditionalSub}?trojan=1</code>
+                                                </p>
                                             {/if}
                                             <div class="btn-list justify-content-start">
                                                 {if $public_setting['enable_ss_sub']}
-                                                <a data-clipboard-text="{$TraditionalSub}?ss=1"class="copy btn btn-primary">
-                                                    复制传统订阅（Shadowsocks）
-                                                </a>
-                                                <a data-clipboard-text="{$TraditionalSub}?sip002=1" class="copy btn btn-primary">
-                                                    复制传统订阅（Shadowsocks SIP002）
-                                                </a>
+                                                    <a data-clipboard-text="{$TraditionalSub}?ss=1"
+                                                       class="copy btn btn-primary">
+                                                        复制传统订阅（Shadowsocks）
+                                                    </a>
+                                                    <a data-clipboard-text="{$TraditionalSub}?sip002=1"
+                                                       class="copy btn btn-primary">
+                                                        复制传统订阅（Shadowsocks SIP002）
+                                                    </a>
                                                 {/if}
                                                 {if $public_setting['enable_v2_sub']}
-                                                    <a data-clipboard-text="{$TraditionalSub}?v2ray=1"class="copy btn btn-primary">复制传统订阅（V2Ray）</a>
+                                                    <a data-clipboard-text="{$TraditionalSub}?v2ray=1"
+                                                       class="copy btn btn-primary">
+                                                        复制传统订阅（V2Ray）
+                                                    </a>
                                                 {/if}
                                                 {if $public_setting['enable_trojan_sub']}
-                                                    <a data-clipboard-text="{$TraditionalSub}?trojan=1"class="copy btn btn-primary">复制传统订阅（Trojan）</a>
+                                                    <a data-clipboard-text="{$TraditionalSub}?trojan=1"
+                                                       class="copy btn btn-primary">
+                                                        复制传统订阅（Trojan）
+                                                    </a>
                                                 {/if}
-                                                <a {if $config['enable_r2_client_download']}
-                                                        href="/user/clients/v2rayN-Core.zip"
-                                                    {else}
-                                                        href="/clients/v2rayN-Core.zip"
-                                                    {/if}
-                                                   class="btn btn-primary">
-                                                    下载 v2rayN（Windows）
-                                                </a>
-                                                <a {if $config['enable_r2_client_download']}
-                                                        href="/user/clients/v2rayNG.apk"
-                                                    {else}
-                                                        href="/clients/v2rayNG.apk"
-                                                    {/if}
-                                                   class="btn btn-primary">
-                                                    下载 v2rayNG（Android）
-                                                </a>
                                             </div>
                                         </div>
                                     </div>
@@ -278,11 +285,11 @@
                                                {else}
                                                     href="/clients/Clash.Verge.exe"
                                                {/if}
-                                               class="btn btn-primary">
+                                               class="btn btn-azure">
                                                 下载 Clash Verge
                                             </a>
                                             <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
-                                               class="btn btn-primary">
+                                               class="btn btn-indigo">
                                                 导入 Clash
                                             </a>
                                             <a href="/clients/v2rayN-Core.zip"
@@ -296,30 +303,41 @@
                                     <p>
                                         适用于 Clash 的订阅：<code>{$UniversalSub}/clash</code>
                                     </p>
+                                    <p>
+                                        适用于 sing-box 的订阅：<code>{$UniversalSub}/singbox</code>
+                                    </p>
                                     <div class="btn-list justify-content-start">
+                                        <a {if $config['enable_r2_client_download']}
+                                            href="/user/clients/Clash.Verge_aarch64.dmg"
+                                        {else}
+                                            href="/clients/Clash.Verge_aarch64.dmg"
+                                        {/if} class="btn btn-azure">
+                                            下载 Clash Verge (aarch64)
+                                        </a>
                                         <a data-clipboard-text="{$UniversalSub}/clash"
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a {if $config['enable_r2_client_download']}
-                                                href="/user/clients/Clash.Verge_aarch64.dmg"
-                                            {else}
-                                                href="/clients/Clash.Verge_aarch64.dmg"
-                                            {/if}
-                                           class="btn btn-primary">
-                                            下载 Clash Verge (aarch64)
-                                        </a>
-                                        <a {if $config['enable_r2_client_download']}
-                                                href="/user/clients/Clash.Verge_x64.dmg"
-                                            {else}
-                                                href="/clients/Clash.Verge_x64.dmg"
-                                            {/if}
-                                           class="btn btn-primary">
-                                            下载 Clash Verge (x86_64)
-                                        </a>
                                         <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
-                                           class="btn btn-primary">
+                                           class="btn btn-indigo">
                                             导入 Clash
+                                        </a>
+                                    </div>
+                                    <div class="btn-list justify-content-start my-2">
+                                        <a {if $config['enable_r2_client_download']}
+                                            href="/user/clients/SFM.zip"
+                                        {else}
+                                            href="/clients/SFM.zip"
+                                        {/if} class="btn btn-azure">
+                                            下载 SFM
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/singbox"
+                                           class="copy btn btn-primary">
+                                            复制 sing-box 订阅链接
+                                        </a>
+                                        <a href="sing-box://import-remote-profile?url={$UniversalSub}/singbox#{$config['appName']}"
+                                           class="btn btn-indigo">
+                                            导入 SFM
                                         </a>
                                     </div>
                                 </div>
@@ -339,16 +357,33 @@
                                             {else}
                                                 href="/clients/Clash-Android.apk"
                                             {/if}
-                                           class="btn btn-primary">
+                                           class="btn btn-azure">
                                             下载 Clash for Android
                                         </a>
                                         <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
-                                           class="btn btn-primary">
+                                           class="btn btn-indigo">
                                             导入 Clash
                                         </a>
                                         <a href="/clients/v2rayNG.apk"
                                            class="btn btn-primary">
                                             下载 v2rayNG（Android）
+                                        </a>
+                                    </div>
+                                    <div class="btn-list justify-content-start my-2">
+                                        <a {if $config['enable_r2_client_download']}
+                                            href="/user/clients/SFA.apk"
+                                        {else}
+                                            href="/clients/SFA.apk"
+                                        {/if} class="btn btn-azure">
+                                            下载 SFA
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/singbox"
+                                           class="copy btn btn-primary">
+                                            复制 sing-box 订阅链接
+                                        </a>
+                                        <a href="sing-box://import-remote-profile?url={$UniversalSub}/singbox#{$config['appName']}"
+                                           class="btn btn-indigo">
+                                            导入 SFA
                                         </a>
                                     </div>
                                 </div>
@@ -360,11 +395,11 @@
                                         适用于 Clash 兼容客户端的订阅：<code>{$UniversalSub}/clash</code>
                                     </p>
                                     <p>
-                                        在购买并安装 Clash 兼容客户端（比如 Stash）之后，点击<code>复制 Clash 订阅链接</code>按钮，然后打开 Clash 兼容客户端导入即可。
+                                        适用于 sing-box 的订阅：<code>{$UniversalSub}/singbox</code>
                                     </p>
                                     <div class="btn-list justify-content-start">
                                         <a href="https://apps.apple.com/app/stash/id1596063349" target="_blank"
-                                           class="btn btn-primary">
+                                           class="btn btn-azure">
                                             购买 Stash
                                         </a>
                                         <a data-clipboard-text="{$UniversalSub}/clash"
@@ -372,12 +407,26 @@
                                             复制 Clash 订阅链接
                                         </a>
                                         <a href="stash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
-                                           class="btn btn-primary">
+                                           class="btn btn-indigo">
                                             导入 Stash
                                         </a>
                                         <a data-clipboard-text="{$TraditionalSub}?sr=1"
                                            class="copy btn btn-primary">
                                             复制 Shadowrocket 订阅链接
+                                        </a>
+                                    </div>
+                                    <div class="btn-list justify-content-start my-2">
+                                        <a href="https://apps.apple.com/app/sing-box/id6451272673" target="_blank"
+                                           class="btn btn-azure">
+                                            安裝 sing-box
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/singbox"
+                                           class="copy btn btn-primary">
+                                            复制 sing-box 订阅链接
+                                        </a>
+                                        <a href="sing-box://import-remote-profile?url={$UniversalSub}/singbox#{$config['appName']}"
+                                           class="btn btn-indigo">
+                                            导入 sing-box
                                         </a>
                                     </div>
                                 </div>
@@ -395,11 +444,11 @@
                                             {else}
                                                 href="/clients/Clash.Verge.AppImage.tar.gz"
                                             {/if}
-                                           class="btn btn-primary">
+                                           class="btn btn-azure">
                                             下载 Clash Verge
                                         </a>
                                         <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
-                                           class="btn btn-primary">
+                                           class="btn btn-indigo">
                                             导入 Clash
                                         </a>
                                     </div>
@@ -442,14 +491,14 @@
                                     <div class="progress-bar bg-primary" role="progressbar" style="width: 1%"></div>
                                 {else}
                                     <div class="progress-bar bg-primary" role="progressbar"
-                                        style="width: {$user->LastusedTrafficPercent()}%">
+                                         style="width: {$user->LastusedTrafficPercent()}%">
                                     </div>
                                 {/if}
                                 {if $user->TodayusedTrafficPercent() < '1'}
                                     <div class="progress-bar bg-success" role="progressbar" style="width: 1%"></div>
                                 {else}
                                     <div class="progress-bar bg-success" role="progressbar"
-                                        style="width: {$user->TodayusedTrafficPercent()}%"></div>
+                                         style="width: {$user->TodayusedTrafficPercent()}%"></div>
                                 {/if}
                             </div>
                             <div class="row">
@@ -467,11 +516,12 @@
                                 </div>
                             </div>
                             <p class="my-3">
-                                {if time() > strtotime($user->class_expire)}
-                                    你的套餐过期了，可以前往 <a href="/user/product">商店</a> 购买套餐
+                                {if $user->class === 0}
+                                    前往
+                                    <a href="/user/product">商店</a>
+                                    购买套餐
                                 {else}
-                                    {$diff = round((strtotime($user->class_expire) - time()) / 86400)}
-                                    你的 LV. {$user->class} 套餐大约还有 {$diff} 天到期（{$user->class_expire}）
+                                    你的 LV. {$user->class} 账户会在 {$class_expire_days} 天后到期（{$user->class_expire}）
                                 {/if}
                             </p>
                         </div>
@@ -483,17 +533,18 @@
                             <i class="ti ti-bell-ringing icon"></i>
                         </div>
                         <div class="card-body">
-                            <h3 class="card-title">最新公告
-                            {if $ann !== null}
-                            <span class="card-subtitle">{$ann->date}</span>
-                            {/if}
+                            <h3 class="card-title">
+                                最新公告
+                                {if $ann !== null}
+                                    <span class="card-subtitle">{$ann->date}</span>
+                                {/if}
                             </h3>
                             <p class="text-secondary">
-                            {if $ann !== null}
-                                {$ann->content}
-                            {else}
-                                暂无公告
-                            {/if}
+                                {if $ann !== null}
+                                    {$ann->content}
+                                {else}
+                                    暂无公告
+                                {/if}
                             </p>
                         </div>
                     </div>
@@ -511,7 +562,10 @@
                                 <p>
                                     签到可领取
                                     {if $config['checkinMin'] !== $config['checkinMax']}
-                                        &nbsp;<code>{$config['checkinMin']} MB</code> 至 <code>{$config['checkinMax']} MB</code>
+                                        &nbsp;
+                                        <code>{$config['checkinMin']} MB</code>
+                                        至
+                                        <code>{$config['checkinMax']} MB</code>
                                         范围内的流量
                                     {else}
                                         <code>{$config['checkinMin']} MB</code>
@@ -524,89 +578,71 @@
                             <div class="card-footer">
                                 <div class="d-flex">
                                     {if ! $user->isAbleToCheckin()}
-                                    <button id="check-in" class="btn btn-primary ms-auto" disabled>已签到</button>
+                                        <button id="check-in" class="btn btn-primary ms-auto" disabled>已签到</button>
                                     {else}
-                                    {if $public_setting['enable_checkin_captcha']}
-                                        {if $public_setting['captcha_provider'] === 'turnstile'}
-                                            <div id="cf-turnstile" class="cf-turnstile" data-sitekey="{$captcha['turnstile_sitekey']}"
-                                            {if $user->is_dark_mode}
-                                                 data-theme="dark"
-                                            {else}
-                                                 data-theme="light"
+                                        {if $public_setting['enable_checkin_captcha']}
+                                            {if $public_setting['captcha_provider'] === 'turnstile'}
+                                                <div id="cf-turnstile" class="cf-turnstile"
+                                                     data-sitekey="{$captcha['turnstile_sitekey']}"
+                                                        {if $user->is_dark_mode}
+                                                            data-theme="dark"
+                                                        {else}
+                                                            data-theme="light"
+                                                        {/if}
+                                                ></div>
                                             {/if}
-                                            ></div>
+                                            {if $public_setting['captcha_provider'] === 'geetest'}
+                                                <div id="geetest"></div>
+                                            {/if}
                                         {/if}
-                                        {if $public_setting['captcha_provider'] === 'geetest'}
-                                            <div id="geetest"></div>
-                                        {/if}
-                                    {/if}
-                                    <button id="check-in" class="btn btn-primary ms-auto">签到</button>
+                                        <button id="check-in" class="btn btn-primary ms-auto"
+                                                hx-post="/user/checkin" hx-swap="none"
+                                                {if $public_setting['captcha_provider'] === 'turnstile'}
+                                                    hx-vals='js:{ turnstile: document.querySelector("[name=cf-turnstile-response]").value }'
+                                                {/if}
+                                                {if $public_setting['captcha_provider'] === 'geetest'}
+                                                    hx-vals='js:{ geetest: geetest_result }'
+                                                {/if}>
+                                            签到
+                                        </button>
                                     {/if}
                                 </div>
                             </div>
                         </div>
                     </div>
                 {/if}
-
             </div>
         </div>
     </div>
 
     <script>
-        var clipboard = new ClipboardJS('.copy');
-        clipboard.on('success', function(e) {
-            $('#success-noreload-message').text('已复制到剪切板');
-            $('#success-noreload-dialog').modal('show');
-        });
-
-        $("#check-in").click(function() {
-            $.ajax({
-                type: "POST",
-                url: "/user/checkin",
-                dataType: "json",
-                data: {
-                    {if $public_setting['enable_checkin_captcha'] && $user->isAbleToCheckin()}
-                        {if $public_setting['captcha_provider'] === 'turnstile'}
-                            turnstile: $('input[name=cf-turnstile-response]').val(),
-                        {/if}
-                        {if $public_setting['captcha_provider'] === 'geetest'}
-                            geetest: geetest_result,
-                        {/if}
-                    {/if}
-                },
-                success: function(data) {
-                    if (data.ret === 1) {
-                        $('#success-message').text(data.msg);
-                        $('#success-dialog').modal('show');
-                    } else {
-                        $('#fail-message').text(data.msg);
-                        $('#fail-dialog').modal('show');
-                    }
-                }
-            })
+        let clipboard = new ClipboardJS('.copy');
+        clipboard.on('success', function (e) {
+            $('#success-message').text('已复制到剪切板');
+            $('#success-dialog').modal('show');
         });
     </script>
 
     {if $public_setting['enable_checkin_captcha'] && $user->isAbleToCheckin()}
-        {if $public_setting['captcha_provider'] === 'turnstile'}
-            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-        {/if}
-        {if $public_setting['captcha_provider'] === 'geetest'}
-            <script src="https://static.geetest.com/v4/gt4.js"></script>
-            <script>
-                var geetest_result = '';
-                initGeetest4({
-                    captchaId: '{$captcha['geetest_id']}',
-                    product: 'float',
-                    language: "zho",
-                    riskType:'slide'
-                }, function (geetest) {
-                    geetest.appendTo("#geetest");
-                    geetest.onSuccess(function() {
-                        geetest_result = geetest.getValidate();
-                    });
-                });
-            </script>
-        {/if}
+    {if $public_setting['captcha_provider'] === 'turnstile'}
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     {/if}
-{include file='user/footer.tpl'}
+    {if $public_setting['captcha_provider'] === 'geetest'}
+        <script src="https://static.geetest.com/v4/gt4.js"></script>
+        <script>
+            let geetest_result = '';
+            initGeetest4({
+                captchaId: '{$captcha['geetest_id']}',
+                product: 'float',
+                language: "zho",
+                riskType: 'slide'
+            }, function (geetest) {
+                geetest.appendTo("#geetest");
+                geetest.onSuccess(function () {
+                    geetest_result = geetest.getValidate();
+                });
+            });
+        </script>
+    {/if}
+    {/if}
+    {include file='user/footer.tpl'}

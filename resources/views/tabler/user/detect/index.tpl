@@ -1,6 +1,6 @@
 {include file='user/header.tpl'}
 
-<!-- 审计规则是用来防止DMCA和Spam，不是用来给用户建墙用的，不要以为把“违法网站”墙了，被抓了能少判哪怕一天的刑期 -->
+<!-- 审计规则是用来防止 DMCA 和邮件 Spam，不是用来给用户建墙用的，不要以为你在中国开机场同时把“违法网站”墙了，被抓了能少判哪怕一天的刑期 -->
 <div class="page-wrapper">
     <div class="container-xl">
         <div class="page-header d-print-none text-white">
@@ -21,28 +21,19 @@
             <div class="row row-deck row-cards">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-body">
-                            <div class="m-0 my-2">
-                                <p>为了防止滥用与确保站点可以稳定运行，特制定了如下过滤规则，当你使用节点执行这些动作时，你的通信就会被截断。</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <div class="card">
                         <div class="table-responsive">
                             <table class="table table-vcenter card-table">
                                 <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>名称</th>
-                                        <th>描述</th>
-                                        <th>正则表达式</th>
-                                        <th>类型</th>
-                                    </tr>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名称</th>
+                                    <th>描述</th>
+                                    <th>正则表达式</th>
+                                    <th>类型</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    {foreach $rules as $rule}
+                                {foreach $rules as $rule}
                                     <tr>
                                         <td>#{$rule->id}</td>
                                         <td>{$rule->name}</td>
@@ -55,7 +46,7 @@
                                             <td>数据包 hex 匹配</td>
                                         {/if}
                                     </tr>
-                                    {/foreach}
+                                {/foreach}
                                 </tbody>
                             </table>
                         </div>
@@ -64,5 +55,5 @@
             </div>
         </div>
     </div>
-    
-{include file='user/footer.tpl'}
+
+    {include file='user/footer.tpl'}

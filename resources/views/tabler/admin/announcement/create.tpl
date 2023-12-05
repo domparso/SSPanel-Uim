@@ -1,7 +1,6 @@
 {include file='admin/header.tpl'}
 
-<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/@tabler/core@latest/dist/libs/tinymce/skins/ui/oxide/skin.min.css">
-<script src="//cdn.jsdelivr.net/npm/@tabler/core@latest/dist/libs/tinymce/tinymce.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/tinymce/6.7.1/tinymce.min.js"></script>
 
 <div class="page-wrapper">
     <div class="container-xl">
@@ -17,10 +16,10 @@
                 </div>
                 <div class="col-auto ms-auto d-print-none">
                     <div class="btn-list">
-                        <a id="create-ann" href="#" class="btn btn-primary">
+                        <button id="create-ann" href="#" class="btn btn-primary">
                             <i class="icon ti ti-device-floppy"></i>
                             保存
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -49,7 +48,7 @@
                                     <span class="col-auto">
                                         <label class="form-check form-check-single form-switch">
                                             <input id="email_notify" class="form-check-input" type="checkbox"
-                                                checked="">
+                                                   checked="">
                                         </label>
                                     </span>
                                 </label>
@@ -66,17 +65,16 @@
     document.addEventListener("DOMContentLoaded", function () {
         let options = {
             selector: '#tinymce',
-            height: 300,
             menubar: false,
             statusbar: false,
             plugins:
-              'advlist autolink lists link image charmap preview anchor ' +
-              'searchreplace visualblocks code fullscreen ' +
-              'insertdatetime media table code help wordcount',
+                'advlist autolink lists link image charmap preview anchor ' +
+                'searchreplace visualblocks code fullscreen ' +
+                'insertdatetime media table wordcount',
             toolbar: 'undo redo | formatselect | ' +
-              'bold italic backcolor link | blocks | alignleft aligncenter ' +
-              'alignright alignjustify | bullist numlist outdent indent | ' +
-              'removeformat',
+                'bold italic backcolor link | blocks | alignleft aligncenter ' +
+                'alignright alignjustify | bullist numlist outdent indent | ' +
+                'removeformat',
             content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;font-size:   14px; -webkit-font-smoothing: antialiased; }',
             {if $user->is_dark_mode}
             skin: 'oxide-dark',
@@ -86,7 +84,7 @@
         tinyMCE.init(options);
     })
 
-    $("#create-ann").click(function() {
+    $("#create-ann").click(function () {
         $.ajax({
             url: '/admin/announcement',
             type: 'POST',
@@ -98,7 +96,7 @@
                 email_notify: $("#email_notify").is(":checked"),
                 content: tinyMCE.activeEditor.getContent(),
             },
-            success: function(data) {
+            success: function (data) {
                 if (data.ret === 1) {
                     $('#success-message').text(data.msg);
                     $('#success-dialog').modal('show');

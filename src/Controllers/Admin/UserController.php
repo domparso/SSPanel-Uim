@@ -11,15 +11,18 @@ use App\Models\UserMoneyLog;
 use App\Utils\Hash;
 use App\Utils\Tools;
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use Telegram\Bot\Exceptions\TelegramSDKException;
 use function str_replace;
 use const PHP_EOL;
 
 final class UserController extends BaseController
 {
-    public static array $details = [
+    private static array $details = [
         'field' => [
             'op' => '操作',
             'id' => '用户ID',
@@ -64,7 +67,7 @@ final class UserController extends BaseController
         ],
     ];
 
-    public static array $update_field = [
+    private static array $update_field = [
         'email',
         'user_name',
         'remark',
@@ -72,14 +75,13 @@ final class UserController extends BaseController
         'money',
         'is_admin',
         'ga_enable',
-        'use_new_shop',
         'is_banned',
         'banned_reason',
+        'is_shadow_banned',
         'transfer_enable',
         'invite_num',
         'ref_by',
         'class_expire',
-        'expire_in',
         'node_group',
         'class',
         'auto_reset_day',
@@ -106,19 +108,27 @@ final class UserController extends BaseController
     }
 
     /**
-     * @throws Exception
+     * @param ServerRequest $request
+     * @param Response $response
+     * @param array $args
+     *
+     * @return Response|ResponseInterface
+     *
+     * @throws GuzzleException
+     * @throws ClientExceptionInterface
+     * @throws TelegramSDKException
      */
-    public function createNewUser(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function create(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
         $email = $request->getParam('email');
         $ref_by = $request->getParam('ref_by');
         $password = $request->getParam('password');
         $balance = $request->getParam('balance');
 
-        if ($email === '' || ! Tools::isEmailLegal($email)) {
+        if ($email === '') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '邮箱格式错误',
+                'msg' => '邮箱不能为空',
             ]);
         }
 
@@ -135,7 +145,7 @@ final class UserController extends BaseController
             $password = Tools::genRandomChar(16);
         }
 
-        AuthController::registerHelper($response, 'user', $email, $password, '', 1, '', 0, $balance, 1);
+        AuthController::registerHelper($response, 'user', $email, $password, '', 0, '', $balance, 1);
         $user = User::where('email', $email)->first();
 
         if ($ref_by !== '') {
@@ -181,7 +191,7 @@ final class UserController extends BaseController
             $money = (float) $request->getParam('money');
             $diff = $money - $user->money;
             $remark = ($diff > 0 ? '管理员添加余额' : '管理员扣除余额');
-            (new UserMoneyLog())->addMoneyLog($id, (float) $user->money, $money, $diff, $remark);
+            (new UserMoneyLog())->add($id, (float) $user->money, $money, $diff, $remark);
             $user->money = $money;
         }
 
@@ -190,14 +200,13 @@ final class UserController extends BaseController
         $user->remark = $request->getParam('remark');
         $user->is_admin = $request->getParam('is_admin') === 'true' ? 1 : 0;
         $user->ga_enable = $request->getParam('ga_enable') === 'true' ? 1 : 0;
-        $user->use_new_shop = $request->getParam('use_new_shop') === 'true' ? 1 : 0;
         $user->is_banned = $request->getParam('is_banned') === 'true' ? 1 : 0;
         $user->banned_reason = $request->getParam('banned_reason');
-        $user->transfer_enable = Tools::toGB($request->getParam('transfer_enable'));
+        $user->is_shadow_banned = $request->getParam('is_shadow_banned') === 'true' ? 1 : 0;
+        $user->transfer_enable = Tools::autoBytesR($request->getParam('transfer_enable'));
         $user->invite_num = $request->getParam('invite_num');
         $user->ref_by = $request->getParam('ref_by');
         $user->class_expire = $request->getParam('class_expire');
-        $user->expire_in = $request->getParam('expire_in');
         $user->node_group = $request->getParam('node_group');
         $user->class = $request->getParam('class');
         $user->auto_reset_day = $request->getParam('auto_reset_day');
@@ -227,7 +236,7 @@ final class UserController extends BaseController
         $id = $args['id'];
         $user = User::find((int) $id);
 
-        if (! $user->killUser()) {
+        if (! $user->kill()) {
             return $response->withJson([
                 'ret' => 0,
                 'msg' => '删除失败',

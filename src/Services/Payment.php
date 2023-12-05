@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Utils\ClassHelper;
+use Psr\Http\Message\ResponseInterface;
 
 final class Payment
 {
@@ -15,9 +16,9 @@ final class Payment
         $helper = new ClassHelper();
         $class_list = $helper->getClassesByNamespace('\\App\\Services\\Gateway\\');
 
-        foreach ($class_list as $clazz) {
-            if (get_parent_class($clazz) === 'App\\Services\\Gateway\\AbstractPayment') {
-                $payments[] = $clazz;
+        foreach ($class_list as $class) {
+            if (get_parent_class($class) === 'App\\Services\\Gateway\\Base') {
+                $payments[] = $class;
             }
         }
 
@@ -61,7 +62,7 @@ final class Payment
         return $response->withStatus(404);
     }
 
-    public static function returnHTML($request, $response, $args)
+    public static function returnHTML($request, $response, $args): string|ResponseInterface
     {
         $payment = self::getPaymentByName($args['type']);
 

@@ -14,25 +14,25 @@ use Slim\Http\ServerRequest;
 
 final class MoneyLogController extends BaseController
 {
-    public static array $details =
-    [
-        'field' => [
-            'id' => '事件ID',
-            'user_id' => '用户ID',
-            'before' => '变动前余额',
-            'after' => '变动后余额',
-            'amount' => '变动金额',
-            'remark' => '备注',
-            'create_time' => '变动时间',
-        ],
-    ];
+    private static array $details =
+        [
+            'field' => [
+                'id' => '事件ID',
+                'user_id' => '用户ID',
+                'before' => '变动前余额',
+                'after' => '变动后余额',
+                'amount' => '变动金额',
+                'remark' => '备注',
+                'create_time' => '变动时间',
+            ],
+        ];
 
     /**
      * 后台用户余额记录页面
      *
      * @throws Exception
      */
-    public function log(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
         return $response->write(
             $this->view()

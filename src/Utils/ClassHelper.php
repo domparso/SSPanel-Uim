@@ -18,22 +18,9 @@ final class ClassHelper
 
         self::$composer = require __DIR__ . '/../../vendor/autoload.php';
 
-        if (is_null(self::$composer) === false) {
+        if (! is_null(self::$composer)) {
             self::$classes = array_keys(self::$composer->getClassMap());
         }
-    }
-
-    public function getClasses(): array
-    {
-        $allClasses = [];
-
-        if (is_null(self::$classes) === false) {
-            foreach (self::$classes as $class) {
-                $allClasses[] = '\\' . $class;
-            }
-        }
-
-        return $allClasses;
     }
 
     public function getClassesByNamespace($namespace): array
@@ -43,10 +30,10 @@ final class ClassHelper
         }
 
         $termUpper = strtoupper($namespace);
+
         return array_filter($this->getClasses(), static function ($class) use ($termUpper) {
             $className = strtoupper($class);
-            if (
-                str_starts_with($className, $termUpper) &&
+            if (str_starts_with($className, $termUpper) &&
                 ! str_contains($className, strtoupper('Abstract')) &&
                 ! str_contains($className, strtoupper('Interface'))
             ) {
@@ -54,5 +41,18 @@ final class ClassHelper
             }
             return false;
         });
+    }
+
+    public function getClasses(): array
+    {
+        $allClasses = [];
+
+        if (! is_null(self::$classes)) {
+            foreach (self::$classes as $class) {
+                $allClasses[] = '\\' . $class;
+            }
+        }
+
+        return $allClasses;
     }
 }

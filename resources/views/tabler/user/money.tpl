@@ -1,7 +1,7 @@
 {include file='user/header.tpl'}
 
 <div class="page-wrapper">
-    <div class="container-xl">       
+    <div class="container-xl">
         <div class="page-header d-print-none text-white">
             <div class="row align-items-center">
                 <div class="col">
@@ -26,44 +26,35 @@
     </div>
     <div class="page-body">
         <div class="container-xl">
-            <div class="row row-deck">
+            <div class="row row-deck row-cards">
                 <div class="col-sm-12 col-lg-12">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">账户余额记录</h3>
-                        </div>
-                        {if $moneylogs->count() !== 0}
-                            <div class="table-responsive">
-                                <table class="table card-table table-vcenter text-nowrap datatable">
-                                    <thead>
+                        <div class="table-responsive">
+                            <table class="table card-table table-vcenter text-nowrap datatable">
+                                <thead>
+                                <tr>
+                                    <th>事件ID</th>
+                                    <th>变动前余额</th>
+                                    <th>变动后余额</th>
+                                    <th>变动金额</th>
+                                    <th>备注</th>
+                                    <th>变动时间</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {foreach $moneylogs as $moneylog}
                                     <tr>
-                                        <th>事件ID</th>
-                                        <th>变动前余额</th>
-                                        <th>变动后余额</th>
-                                        <th>变动金额</th>
-                                        <th>备注</th>
-                                        <th>变动时间</th>
+                                        <td>{$moneylog->id}</td>
+                                        <td>{$moneylog->before}</td>
+                                        <td>{$moneylog->after}</td>
+                                        <td>{$moneylog->amount}</td>
+                                        <td>{$moneylog->remark}</td>
+                                        <td>{$moneylog->create_time}</td>
                                     </tr>
-                                    </thead>
-                                    <tbody>
-                                    {foreach $moneylogs as $moneylog}
-                                        <tr>
-                                            <td>{$moneylog->id}</td>
-                                            <td>{$moneylog->before}</td>
-                                            <td>{$moneylog->after}</td>
-                                            <td>{$moneylog->amount}</td>
-                                            <td>{$moneylog->remark}</td>
-                                            <td>{$moneylog->create_time}</td>
-                                        </tr>
-                                    {/foreach}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {else}
-                            <div class="card-body">
-                                <p>没有找到记录</p>
-                            </div>
-                        {/if}
+                                {/foreach}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -80,39 +71,21 @@
                 <div class="modal-body">
                     <div class="form-group mb-3 row">
                         <div class="col">
-                            <input id="giftcard" type="text" class="form-control" placeholder="输入礼品卡卡号并点击兑换">
+                            <input id="giftcard" type="text" class="form-control"
+                                   placeholder="输入礼品卡卡号并点击兑换">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn me-auto" data-bs-dismiss="modal">取消</button>
-                    <button id="apply-giftcard"
-                            type="button" class="btn btn-primary" data-bs-dismiss="modal">兑换</button>
+                    <button id="apply-giftcard" class="btn btn-primary" data-bs-dismiss="modal"
+                            hx-post="/user/giftcard" hx-swap="none"
+                            hx-vals='js:{ giftcard: document.getElementById("giftcard").value }'>
+                        兑换
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-        $("#apply-giftcard").click(function() {
-            $.ajax({
-                url: '/user/giftcard',
-                type: 'POST',
-                dataType: "json",
-                data: {
-                    giftcard: $('#giftcard').val(),
-                },
-                success: function(data) {
-                    if (data.ret === 1) {
-                        $('#success-message').text(data.msg);
-                        $('#success-dialog').modal('show');
-                    } else {
-                        $('#fail-message').text(data.msg);
-                        $('#fail-dialog').modal('show');
-                    }
-                }
-            })
-        });
-    </script>
 
 {include file='user/footer.tpl'}

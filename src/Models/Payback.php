@@ -4,8 +4,19 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Query\Builder;
 use function time;
 
+/**
+ * @property int   $id       记录ID
+ * @property float $total    总金额
+ * @property int   $userid   用户ID
+ * @property int   $ref_by   推荐人ID
+ * @property float $ref_get  推荐人获得金额
+ * @property int   $datetime 创建时间
+ *
+ * @mixin Builder
+ */
 final class Payback extends Model
 {
     protected $connection = 'default';
@@ -16,27 +27,40 @@ final class Payback extends Model
         return User::where('id', $this->userid)->first();
     }
 
+    public function getUserNameAttribute(): string
+    {
+        return User::where('id', $this->userid)->first() === null ? '已注销' :
+            User::where('id', $this->userid)->first()->user_name;
+    }
+
     public function refUser()
     {
         return User::where('id', $this->ref_by)->first();
     }
 
-    public static function rebate($user_id, $order_amount): void
+    public function getRefUserNameAttribute(): string
     {
-        $configs = Setting::getClass('invite');
+        return User::where('id', $this->ref_by)->first() === null ? '已注销' :
+            User::where('id', $this->ref_by)->first()->user_name;
+    }
+
+    public function rebate($user_id, $order_amount): void
+    {
+        $configs = Config::getClass('ref');
         $user = User::where('id', $user_id)->first();
         $gift_user_id = $user->ref_by;
-
         // 判断
         $invite_rebate_mode = (string) $configs['invite_rebate_mode'];
+
         if ($invite_rebate_mode === 'continued') {
             // 不设限制
-            self::executeRebate($user_id, $gift_user_id, $order_amount);
+            $this->execute($user_id, $gift_user_id, $order_amount);
         } elseif ($invite_rebate_mode === 'limit_frequency') {
             // 限制返利次数
             $rebate_frequency = self::where('userid', $user_id)->count();
+
             if ($rebate_frequency < $configs['rebate_frequency_limit']) {
-                self::executeRebate($user_id, $gift_user_id, $order_amount);
+                $this->execute($user_id, $gift_user_id, $order_amount);
             }
         } elseif ($invite_rebate_mode === 'limit_amount') {
             // 限制返利金额
@@ -48,44 +72,45 @@ final class Payback extends Model
                 && $total_rebate_amount <= $configs['rebate_amount_limit']
             ) {
                 $adjust_rebate = $configs['rebate_amount_limit'] - $total_rebate_amount;
+
                 if ($adjust_rebate > 0) {
-                    self::executeRebate($user_id, $gift_user_id, $order_amount, $adjust_rebate);
+                    $this->execute($user_id, $gift_user_id, $order_amount, $adjust_rebate);
                 }
             } else {
-                self::executeRebate($user_id, $gift_user_id, $order_amount);
+                $this->execute($user_id, $gift_user_id, $order_amount);
             }
         } elseif ($invite_rebate_mode === 'limit_time_range') {
             if (strtotime($user->reg_date) + $configs['rebate_time_range_limit'] * 86400 > time()) {
-                self::executeRebate($user_id, $gift_user_id, $order_amount);
+                $this->execute($user_id, $gift_user_id, $order_amount);
             }
         }
     }
 
-    public static function executeRebate($user_id, $gift_user_id, $order_amount, $adjust_rebate = null): void
+    public function execute($user_id, $gift_user_id, $order_amount, $adjust_rebate = null): void
     {
         $gift_user = User::where('id', $gift_user_id)->first();
+
         if ($gift_user !== null) {
-            $rebate_amount = $order_amount * Setting::obtain('rebate_ratio');
+            $rebate_amount = $order_amount * Config::obtain('rebate_ratio');
             // 返利
             $money_before = $gift_user->money;
             $gift_user->money += $adjust_rebate ?? $rebate_amount;
             $gift_user->save();
             // 余额变动记录
-            (new UserMoneyLog())->addMoneyLog(
+            (new UserMoneyLog())->add(
                 $gift_user->id,
                 (float) $money_before,
                 (float) $gift_user->money,
                 $adjust_rebate ?? $rebate_amount,
                 '邀请用户 #' . $user_id . ' 返利',
             );
-            // 记录
-            $payback = new Payback();
-            $payback->total = $order_amount;
-            $payback->userid = $user_id;
-            $payback->ref_by = $gift_user_id;
-            $payback->ref_get = $adjust_rebate ?? $rebate_amount;
-            $payback->datetime = time();
-            $payback->save();
+            // 添加记录
+            $this->total = $order_amount;
+            $this->userid = $user_id;
+            $this->ref_by = $gift_user_id;
+            $this->ref_get = $adjust_rebate ?? $rebate_amount;
+            $this->datetime = time();
+            $this->save();
         }
     }
 }

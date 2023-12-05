@@ -1,7 +1,7 @@
 {include file='admin/header.tpl'}
 
-<script src="//cdn.jsdelivr.net/npm/jsoneditor@latest/dist/jsoneditor.min.js"></script>
-<link href="//cdn.jsdelivr.net/npm/jsoneditor@latest/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+<script src="//{$config['jsdelivr_url']}/npm/jsoneditor@latest/dist/jsoneditor.min.js"></script>
+<link href="//{$config['jsdelivr_url']}/npm/jsoneditor@latest/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
 
 <div class="page-wrapper">
     <div class="container-xl">
@@ -57,7 +57,7 @@
                                 <label class="form-label col-3 col-form-label required">流量倍率</label>
                                 <div class="col">
                                     <input id="traffic_rate" type="text" class="form-control"
-                                        value="">
+                                           value="">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
@@ -65,7 +65,9 @@
                                 <div class="col">
                                     <select id="sort" class="col form-select">
                                         <option value="14">Trojan</option>
-                                        <option value="11">V2Ray</option>
+                                        <option value="11">Vmess</option>
+                                        <option value="2">TUIC</option>
+                                        <option value="1">Shadowsocks2022</option>
                                         <option value="0">Shadowsocks</option>
                                     </select>
                                 </div>
@@ -74,23 +76,55 @@
                                 <label class="form-label col-3 col-form-label">自定义配置</label>
                                 <div id="custom_config"></div>
                                 <label class="form-label col-form-label">
-                                    请参考 <a href="//wiki.sspanel.org/#/custom-config" target="_blank">wiki.sspanel.org/#/custom-config</a> 修改节点自定义配置
+                                    请参考 <a href="//wiki.sspanel.org/#/custom-config" target="_blank">wiki.sspanel.org/#/custom-config</a>
+                                    修改节点自定义配置
                                 </label>
                             </div>
-                            <div class="mb-3">
-                                <div class="divide-y">
-                                    <div>
-                                        <label class="row">
-                                            <span class="col">显示此节点</span>
-                                            <span class="col-auto">
-                                                <label class="form-check form-check-single form-switch">
-                                                    <input id="type" class="form-check-input" type="checkbox"
-                                                        checked="">
-                                                </label>
-                                            </span>
-                                        </label>
-                                    </div>
+                            <div class="form-group mb-3 row">
+                                <span class="col">显示此节点</span>
+                                <span class="col-auto">
+                                      <label class="form-check form-check-single form-switch">
+                                          <input id="type" class="form-check-input" type="checkbox" {if $node->type}checked="" {/if}>
+                                      </label>
+                                  </span>
+                            </div>
+                            <div class="hr-text">
+                                <span>动态倍率</span>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <span class="col">启用动态流量倍率</span>
+                                <span class="col-auto">
+                                      <label class="form-check form-check-single form-switch">
+                                          <input id="is_dynamic_rate" class="form-check-input" type="checkbox" {if $node->is_dynamic_rate}checked="" {/if}>
+                                      </label>
+                                  </span>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最大倍率</label>
+                                <div class="col">
+                                    <input id="max_rate" type="text" class="form-control" value="{$node->max_rate}">
                                 </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最大倍率时间（时）</label>
+                                <div class="col">
+                                    <input id="max_rate_time" type="text" class="form-control" value="{$node->max_rate_time}">
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最小倍率</label>
+                                <div class="col">
+                                    <input id="min_rate" type="text" class="form-control" value="{$node->min_rate}">
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最小倍率时间（时）</label>
+                                <div class="col">
+                                    <input id="min_rate_time" type="text" class="form-control" value="{$node->min_rate_time}">
+                                </div>
+                                <label class="form-label col-form-label">
+                                    最大倍率时间必须大于最小倍率时间，否则将不会生效
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -126,21 +160,21 @@
                                 <label class="form-label col-3 col-form-label required">可用流量 (GB)</label>
                                 <div class="col">
                                     <input id="node_bandwidth_limit" type="text" class="form-control"
-                                        value="">
+                                           value="">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label required">流量重置日</label>
                                 <div class="col">
                                     <input id="bandwidthlimit_resetday" type="text" class="form-control"
-                                        value="">
+                                           value="">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label required">速率限制 (Mbps)</label>
                                 <div class="col">
                                     <input id="node_speedlimit" type="text" class="form-control"
-                                        value="">
+                                           value="">
                                 </div>
                             </div>
                         </div>
@@ -158,7 +192,7 @@
     };
     const editor = new JSONEditor(container, options);
 
-    $("#create-node").click(function() {
+    $("#create-node").click(function () {
         $.ajax({
             url: '/admin/node',
             type: 'POST',
@@ -170,7 +204,7 @@
                 type: $("#type").is(":checked"),
                 custom_config: JSON.stringify(editor.get()),
             },
-            success: function(data) {
+            success: function (data) {
                 if (data.ret === 1) {
                     $('#success-message').text(data.msg);
                     $('#success-dialog').modal('show');

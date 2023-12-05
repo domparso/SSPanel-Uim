@@ -139,10 +139,6 @@ return new class() implements MigrationInterface {
         ALTER TABLE product MODIFY COLUMN `sale_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '累计销售数';
         ALTER TABLE product MODIFY COLUMN `stock` int(11) NOT NULL DEFAULT -1 COMMENT '库存';
         ALTER TABLE product ADD KEY IF NOT EXISTS `status` (`status`);
-        ALTER TABLE stream_media MODIFY COLUMN `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID';
-        ALTER TABLE stream_media MODIFY COLUMN `node_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '节点ID';
-        ALTER TABLE stream_media MODIFY COLUMN `result` text NOT NULL DEFAULT '' COMMENT '检测结果';
-        ALTER TABLE stream_media MODIFY COLUMN `created_at` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '创建时间';
         ALTER TABLE ticket MODIFY COLUMN `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '工单ID';
         ALTER TABLE ticket MODIFY COLUMN `title` varchar(255) NOT NULL DEFAULT '' COMMENT '工单标题';
         ALTER TABLE ticket MODIFY COLUMN `content` longtext NOT NULL DEFAULT '{}' COMMENT '工单内容' CHECK (json_valid(`content`));
@@ -172,14 +168,6 @@ return new class() implements MigrationInterface {
         ALTER TABLE user_invite_code MODIFY COLUMN `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT '创建时间';
         ALTER TABLE user_invite_code MODIFY COLUMN `updated_at` timestamp NOT NULL DEFAULT '1989-06-04 00:05:00' COMMENT '更新时间';
         ALTER TABLE user_money_log MODIFY COLUMN `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `user_name` varchar(255) NOT NULL DEFAULT '' COMMENT '用户名';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `user_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '用户ID';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `email` varchar(255) NOT NULL DEFAULT '' COMMENT '用户邮箱';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `subscribe_type` varchar(255) NOT NULL DEFAULT '' COMMENT '获取的订阅类型';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `request_ip` varchar(255) NOT NULL DEFAULT '' COMMENT '请求IP';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `request_time` timestamp NOT NULL DEFAULT '1989-06-04 00:05:00' COMMENT '请求时间';
-        ALTER TABLE user_subscribe_log MODIFY COLUMN `request_user_agent` varchar(255) NOT NULL DEFAULT '' COMMENT '请求UA信息';
         SET FOREIGN_KEY_CHECKS = 1;");
 
         return 2023061800;

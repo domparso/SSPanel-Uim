@@ -1,8 +1,11 @@
 {include file='admin/header.tpl'}
 
-<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="//cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="//cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
+<link rel="stylesheet" href="//{$config['jsdelivr_url']}/npm/flatpickr/dist/flatpickr.min.css">
+{if $user->is_dark_mode}
+    <link rel="stylesheet" href="//{$config['jsdelivr_url']}/npm/flatpickr/dist/themes/dark.min.css">
+{/if}
+<script src="//{$config['jsdelivr_url']}/npm/flatpickr"></script>
+<script src="//{$config['jsdelivr_url']}/npm/flatpickr/dist/l10n/zh.js"></script>
 
 <div class="page-wrapper">
     <div class="container-xl">
@@ -21,7 +24,7 @@
                 <div class="col-auto">
                     <div class="btn-list">
                         <a href="#" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#create-dialog">
+                           data-bs-target="#create-dialog">
                             <i class="icon ti ti-plus"></i>
                             创建
                         </a>
@@ -38,11 +41,11 @@
                         <div class="table-responsive">
                             <table id="data_table" class="table card-table table-vcenter text-nowrap datatable">
                                 <thead>
-                                    <tr>
-                                        {foreach $details['field'] as $key => $value}
-                                            <th>{$value}</th>
-                                        {/foreach}
-                                    </tr>
+                                <tr>
+                                    {foreach $details['field'] as $key => $value}
+                                        <th>{$value}</th>
+                                    {/foreach}
+                                </tr>
                                 </thead>
                             </table>
                         </div>
@@ -66,7 +69,7 @@
                                 <label class="form-label col-3 col-form-label">{$detail['info']}</label>
                                 <div class="col">
                                     <input id="{$detail['id']}" type="text" class="form-control"
-                                        placeholder="{$detail['placeholder']}">
+                                           placeholder="{$detail['placeholder']}">
                                 </div>
                             </div>
                         {/if}
@@ -74,7 +77,7 @@
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label">{$detail['info']}</label>
                                 <textarea id="{$detail['id']}" class="col form-control" rows="{$detail['rows']}"
-                                    placeholder="{$detail['placeholder']}"></textarea>
+                                          placeholder="{$detail['placeholder']}"></textarea>
                             </div>
                         {/if}
                         {if $detail['type'] === 'select'}
@@ -94,14 +97,15 @@
                         <label class="form-label col-3 col-form-label">过期时间（留空则为不限制）</label>
                         <div class="col">
                             <input id="expire_time" type="text" class="form-control"
-                                placeholder="">
+                                   placeholder="">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn me-auto" data-bs-dismiss="modal">取消</button>
                     <button id="create-button" onclick="createCoupon()"
-                        type="button" class="btn btn-primary" data-bs-dismiss="modal">创建</button>
+                            type="button" class="btn btn-primary" data-bs-dismiss="modal">创建
+                    </button>
                 </div>
             </div>
         </div>
@@ -122,7 +126,7 @@
                 type: 'POST',
                 dataSrc: 'coupons'
             },
-            "autoWidth":false,
+            "autoWidth": false,
             'iDisplayLength': 10,
             'scrollX': true,
             'order': [
@@ -130,11 +134,16 @@
             ],
             columns: [
                 {foreach $details['field'] as $key => $value}
-                { data: '{$key}' },
+                {
+                    data: '{$key}'
+                },
                 {/foreach}
             ],
-            "columnDefs":[
-                { targets:[0],orderable:false }
+            "columnDefs": [
+                {
+                    targets: [0],
+                    orderable: false
+                }
             ],
             "dom": "<'row px-3 py-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                 "<'row'<'col-sm-12'tr>>" +
@@ -176,11 +185,11 @@
                 dataType: "json",
                 data: {
                     {foreach $details['create_dialog'] as $detail}
-                        {$detail['id']}: $('#{$detail['id']}').val(),
+                    {$detail['id']}: $('#{$detail['id']}').val(),
                     {/foreach}
                     expire_time: $('#expire_time').val(),
                 },
-                success: function(data) {
+                success: function (data) {
                     if (data.ret === 1) {
                         $('#success-noreload-message').text(data.msg);
                         $('#success-noreload-dialog').modal('show');
@@ -196,12 +205,12 @@
         function deleteCoupon(coupon_id) {
             $('#notice-message').text('确定删除此优惠码？');
             $('#notice-dialog').modal('show');
-            $('#notice-confirm').off('click').on('click', function() {
+            $('#notice-confirm').off('click').on('click', function () {
                 $.ajax({
                     url: "/admin/coupon/" + coupon_id,
                     type: 'DELETE',
                     dataType: "json",
-                    success: function(data) {
+                    success: function (data) {
                         if (data.ret === 1) {
                             $('#success-noreload-message').text(data.msg);
                             $('#success-noreload-dialog').modal('show');
@@ -218,12 +227,12 @@
         function disableCoupon(coupon_id) {
             $('#notice-message').text('确定禁用此优惠码？');
             $('#notice-dialog').modal('show');
-            $('#notice-confirm').off('click').on('click', function() {
+            $('#notice-confirm').off('click').on('click', function () {
                 $.ajax({
                     url: "/admin/coupon/" + coupon_id + "/disable",
                     type: 'POST',
                     dataType: "json",
-                    success: function(data) {
+                    success: function (data) {
                         if (data.ret === 1) {
                             $('#success-noreload-dialog').text(data.msg);
                             $('#success-noreload-message').modal('show');
@@ -244,4 +253,4 @@
         loadTable();
     </script>
 
-{include file='admin/footer.tpl'}
+    {include file='admin/footer.tpl'}

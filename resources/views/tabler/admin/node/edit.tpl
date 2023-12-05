@@ -1,7 +1,7 @@
 {include file='admin/header.tpl'}
 
-<script src="//cdn.jsdelivr.net/npm/jsoneditor@latest/dist/jsoneditor.min.js"></script>
-<link href="//cdn.jsdelivr.net/npm/jsoneditor@latest/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
+<script src="//{$config['jsdelivr_url']}/npm/jsoneditor@latest/dist/jsoneditor.min.js"></script>
+<link href="//{$config['jsdelivr_url']}/npm/jsoneditor@latest/dist/jsoneditor.min.css" rel="stylesheet" type="text/css">
 
 <div class="page-wrapper">
     <div class="container-xl">
@@ -57,7 +57,7 @@
                                 <label class="form-label col-3 col-form-label">流量倍率</label>
                                 <div class="col">
                                     <input id="traffic_rate" type="text" class="form-control"
-                                        value="{$node->traffic_rate}">
+                                           value="{$node->traffic_rate}">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
@@ -65,7 +65,9 @@
                                 <div class="col">
                                     <select id="sort" class="col form-select" value="{$node->sort}">
                                         <option value="14" {if $node->sort === 14}selected{/if}>Trojan</option>
-                                        <option value="11" {if $node->sort === 11}selected{/if}>V2Ray</option>
+                                        <option value="11" {if $node->sort === 11}selected{/if}>Vmess</option>
+                                        <option value="2" {if $node->sort === 2}selected{/if}>TUIC</option>
+                                        <option value="1" {if $node->sort === 1}selected{/if}>Shadowsocks2022</option>
                                         <option value="0" {if $node->sort === 0}selected{/if}>Shadowsocks</option>
                                     </select>
                                 </div>
@@ -74,23 +76,55 @@
                                 <label class="form-label col-3 col-form-label">自定义配置</label>
                                 <div id="custom_config"></div>
                                 <label class="form-label col-form-label">
-                                    请参考 <a href="//wiki.sspanel.org/#/custom-config" target="_blank">wiki.sspanel.org/#/custom-config</a> 修改节点自定义配置
+                                    请参考 <a href="//wiki.sspanel.org/#/custom-config" target="_blank">wiki.sspanel.org/#/custom-config</a>
+                                    修改节点自定义配置
                                 </label>
                             </div>
-                            <div class="mb-3">
-                                <div class="divide-y">
-                                    <div>
-                                        <label class="row">
-                                            <span class="col">显示此节点</span>
-                                            <span class="col-auto">
-                                                <label class="form-check form-check-single form-switch">
-                                                    <input id="type" class="form-check-input" type="checkbox"
-                                                        {if $node->type === 1}checked="" {/if}>
-                                                </label>
-                                            </span>
-                                        </label>
-                                    </div>
+                            <div class="form-group mb-3 row">
+                                  <span class="col">显示此节点</span>
+                                  <span class="col-auto">
+                                      <label class="form-check form-check-single form-switch">
+                                          <input id="type" class="form-check-input" type="checkbox" {if $node->type}checked="" {/if}>
+                                      </label>
+                                  </span>
+                            </div>
+                            <div class="hr-text">
+                                <span>动态倍率</span>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <span class="col">启用动态流量倍率</span>
+                                <span class="col-auto">
+                                      <label class="form-check form-check-single form-switch">
+                                          <input id="is_dynamic_rate" class="form-check-input" type="checkbox" {if $node->is_dynamic_rate}checked="" {/if}>
+                                      </label>
+                                  </span>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最大倍率</label>
+                                <div class="col">
+                                    <input id="max_rate" type="text" class="form-control" value="{$node->max_rate}">
                                 </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最大倍率时间（时）</label>
+                                <div class="col">
+                                    <input id="max_rate_time" type="text" class="form-control" value="{$node->max_rate_time}">
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最小倍率</label>
+                                <div class="col">
+                                    <input id="min_rate" type="text" class="form-control" value="{$node->min_rate}">
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">最小倍率时间（时）</label>
+                                <div class="col">
+                                    <input id="min_rate_time" type="text" class="form-control" value="{$node->min_rate_time}">
+                                </div>
+                                <label class="form-label col-form-label">
+                                    最大倍率时间必须大于最小倍率时间，否则将不会生效
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -126,28 +160,28 @@
                                 <label class="form-label col-3 col-form-label">已用流量 (GB)</label>
                                 <div class="col">
                                     <input id="node_bandwidth" type="text" class="form-control"
-                                        value="{round($node->node_bandwidth / 1073741824, 2)}" disabled="">
+                                           value="{$node->node_bandwidth}" disabled="">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label">可用流量 (GB)</label>
                                 <div class="col">
                                     <input id="node_bandwidth_limit" type="text" class="form-control"
-                                        value="{round($node->node_bandwidth_limit / 1073741824, 2)}">
+                                           value="{$node->node_bandwidth_limit}">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label">流量重置日</label>
                                 <div class="col">
                                     <input id="bandwidthlimit_resetday" type="text" class="form-control"
-                                        value="{$node->bandwidthlimit_resetday}">
+                                           value="{$node->bandwidthlimit_resetday}">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label">速率限制 (Mbps)</label>
                                 <div class="col">
                                     <input id="node_speedlimit" type="text" class="form-control"
-                                        value="{$node->node_speedlimit}">
+                                           value="{$node->node_speedlimit}">
                                 </div>
                             </div>
                             <div class="hr-text">
@@ -155,17 +189,19 @@
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label">节点通讯密钥</label>
-                                <input type="text" class="form-control" id="password" value="{$node->password}" disabled="">
+                                <input type="text" class="form-control" id="password" value="{$node->password}"
+                                       disabled="">
                                 <div class="row my-3">
                                     <div class="col">
                                         <button id="reset-node-password" class="btn btn-red">重置</button>
-                                        <button id="copy-password" class="copy btn btn-primary" data-clipboard-text="{$node->password}">
+                                        <button id="copy-password" class="copy btn btn-primary"
+                                                data-clipboard-text="{$node->password}">
                                             复制
                                         </button>
                                     </div>
                                 </div>
                                 <label class="form-label col-form-label">
-                                    通讯密钥用于 gRPC API 鉴权，如需更改请点击重置
+                                    通讯密钥用于 WebAPI 节点模式鉴权，如需更改请点击重置
                                 </label>
                             </div>
                         </div>
@@ -178,7 +214,7 @@
 
 <script>
     var clipboard = new ClipboardJS('.copy');
-    clipboard.on('success', function(e) {
+    clipboard.on('success', function (e) {
         $('#success-noreload-message').text('已复制到剪切板');
         $('#success-noreload-dialog').modal('show');
     });
@@ -190,12 +226,12 @@
     const editor = new JSONEditor(container, options);
     editor.set({$node->custom_config})
 
-    $("#reset-node-password").click(function() {
+    $("#reset-node-password").click(function () {
         $.ajax({
-            url: '/admin/node/{$node->id}/password_reset',
+            url: '/admin/node/{$node->id}/reset',
             type: 'POST',
             dataType: "json",
-            success: function(data) {
+            success: function (data) {
                 if (data.ret === 1) {
                     $('#success-message').text(data.msg);
                     $('#success-dialog').modal('show');
@@ -207,7 +243,7 @@
         })
     });
 
-    $("#save-node").click(function() {
+    $("#save-node").click(function () {
         $.ajax({
             url: '/admin/node/{$node->id}',
             type: 'PUT',
@@ -217,9 +253,10 @@
                 {$key}: $('#{$key}').val(),
                 {/foreach}
                 type: $("#type").is(":checked"),
+                is_dynamic_rate: $("#is_dynamic_rate").is(":checked"),
                 custom_config: JSON.stringify(editor.get()),
             },
-            success: function(data) {
+            success: function (data) {
                 if (data.ret === 1) {
                     $('#success-message').text(data.msg);
                     $('#success-dialog').modal('show');

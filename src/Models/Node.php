@@ -4,10 +4,43 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Exception;
+use Illuminate\Database\Query\Builder;
 use function array_key_exists;
 use function count;
+use function dns_get_record;
 use function time;
+use const DNS_A;
+use const DNS_AAAA;
 
+/**
+ * @property int    $id                      节点ID
+ * @property string $name                    节点名称
+ * @property int    $type                    节点显示
+ * @property string $server                  节点地址
+ * @property string $custom_config           自定义配置
+ * todo: delete these two properties
+ * @property string $info                    节点信息
+ * @property string $status                  节点状态
+ * @property int    $sort                    节点类型
+ * @property float  $traffic_rate            流量倍率
+ * @property int    $is_dynamic_rate         是否启用动态流量倍率
+ * @property string $dynamic_rate_config     动态流量倍率配置
+ * @property int    $node_class              节点等级
+ * @property float  $node_speedlimit         节点限速
+ * @property int    $node_bandwidth          节点流量
+ * @property int    $node_bandwidth_limit    节点流量限制
+ * @property int    $bandwidthlimit_resetday 流量重置日
+ * @property int    $node_heartbeat          节点心跳
+ * @property int    $online_user             节点在线用户
+ * @property string $node_ip                 节点IP
+ * @property int    $node_group              节点群组
+ * @property int    $online                  在线状态
+ * @property int    $gfw_block               是否被GFW封锁
+ * @property string $password                后端连接密码
+ *
+ * @mixin Builder
+ */
 final class Node extends Model
 {
     protected $connection = 'default';
@@ -17,6 +50,18 @@ final class Node extends Model
         'traffic_rate' => 'float',
         'node_heartbeat' => 'int',
     ];
+
+    /**
+     * 节点状态颜色
+     */
+    public function getColorAttribute(): string
+    {
+        return match ($this->getNodeOnlineStatus()) {
+            0 => 'orange',
+            1 => 'green',
+            default => 'red',
+        };
+    }
 
     /**
      * 节点是否显示和隐藏
@@ -33,18 +78,12 @@ final class Node extends Model
     {
         return match ($this->sort) {
             0 => 'Shadowsocks',
-            11 => 'V2Ray',
+            1 => 'Shadowsocks2022',
+            2 => 'TUIC',
+            11 => 'Vmess',
             14 => 'Trojan',
             default => '未知',
         };
-    }
-
-    /**
-     * 节点最后活跃时间
-     */
-    public function nodeHeartbeat(): string
-    {
-        return date('Y-m-d H:i:s', $this->node_heartbeat);
     }
 
     /**
@@ -54,35 +93,7 @@ final class Node extends Model
      */
     public function getNodeOnlineStatus(): int
     {
-        // 类型 9 或者心跳为 0
-        if ($this->node_heartbeat === 0) {
-            return 0;
-        }
-
-        return $this->node_heartbeat + 600 > time() ? 1 : -1;
-    }
-
-    /**
-     * 获取节点速率文本信息
-     */
-    public function getNodeSpeedlimit(): string
-    {
-        if ($this->node_speedlimit === 0.0) {
-            return '0';
-        }
-        if ($this->node_speedlimit >= 1024.00) {
-            return round($this->node_speedlimit / 1024.00, 1) . 'Gbps';
-        }
-
-        return $this->node_speedlimit . 'Mbps';
-    }
-
-    /**
-     * 节点流量已耗尽
-     */
-    public function isNodeTrafficOut(): bool
-    {
-        return ! ($this->node_bandwidth_limit === 0 || $this->node_bandwidth < $this->node_bandwidth_limit);
+        return $this->node_heartbeat === 0 ? 0 : ($this->node_heartbeat + 600 > time() ? 1 : -1);
     }
 
     /**
@@ -90,7 +101,12 @@ final class Node extends Model
      */
     public function changeNodeIp(string $server_name): void
     {
-        $result = dns_get_record($server_name, DNS_A + DNS_AAAA);
+        try {
+            $result = dns_get_record($server_name, DNS_A + DNS_AAAA);
+        } catch (Exception $e) {
+            $result = false;
+        }
+
         $dns = [];
 
         if ($result !== false && count($result) > 0) {

@@ -6,10 +6,10 @@
             <div class="row align-items-center">
                 <div class="col">
                     <h2 class="page-title">
-                        <span class="home-title">系统概况</span>
+                        <span class="home-title">站点概况</span>
                     </h2>
                     <div class="page-pretitle my-3">
-                        <span class="home-subtitle">在这里查看系统的的各项运营指标</span>
+                        <span class="home-subtitle">站点运营状态总览</span>
                     </div>
                 </div>
             </div>
@@ -109,7 +109,7 @@
                 <div class="col-sm-12 col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">{$sts->getTotalUser()} 位用户的签到情况</h3>
+                            <h3 class="card-title">{$total_user} 位用户的签到情况</h3>
                         </div>
                         <div class="card-body">
                             <div id="check-in"></div>
@@ -119,7 +119,7 @@
                 <div class="col-sm-12 col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">{$sts->getTotalNodes()} 个服务器的在线情况</h3>
+                            <h3 class="card-title">{$total_node} 个服务器的在线情况</h3>
                         </div>
                         <div class="card-body">
                             <div id="node-online"></div>
@@ -151,7 +151,7 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             window.ApexCharts && (new ApexCharts(document.getElementById('check-in'), {
                 chart: {
                     type: "donut",
@@ -167,7 +167,7 @@
                 fill: {
                     opacity: 1,
                 },
-                series: [{$sts->getTotalUser()-$sts->getCheckinUser()}, {$sts->getCheckinUser()-$sts->getTodayCheckinUser()}, {$sts->getTodayCheckinUser()}],
+                series: [{$total_user-$checkin_user}, {$checkin_user-$today_checkin_user}, {$today_checkin_user}],
                 labels: ["没有签到", "曾经签到", "今日签到"],
                 grid: {
                     strokeDashArray: 3,
@@ -191,10 +191,7 @@
                     fillSeriesColor: false
                 },
             })).render();
-        });
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
+
             window.ApexCharts && (new ApexCharts(document.getElementById('node-online'), {
                 chart: {
                     type: "donut",
@@ -210,7 +207,7 @@
                 fill: {
                     opacity: 1,
                 },
-                series: [{$sts->getAliveNodes()}, {$sts->getTotalNodes()-$sts->getAliveNodes()}],
+                series: [{$alive_node}, {$total_node-$alive_node}],
                 labels: ["在线", "离线"],
                 grid: {
                     strokeDashArray: 2,
@@ -234,10 +231,7 @@
                     fillSeriesColor: false
                 },
             })).render();
-        });
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
+
             window.ApexCharts && (new ApexCharts(document.getElementById('user-inactive'), {
                 chart: {
                     type: "donut",
@@ -253,7 +247,7 @@
                 fill: {
                     opacity: 1,
                 },
-                series: [{$sts->getInactiveUser()}, {$sts->getActiveUser()}],
+                series: [{$inactive_user}, {$active_user}],
                 labels: ["闲置账户", "活动账户"],
                 grid: {
                     strokeDashArray: 4,
@@ -277,10 +271,7 @@
                     fillSeriesColor: false
                 },
             })).render();
-        });
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
+
             window.ApexCharts && (new ApexCharts(document.getElementById('traffic-usage'), {
                 chart: {
                     type: "donut",
@@ -296,8 +287,8 @@
                 fill: {
                     opacity: 1,
                 },
-                series: [{$sts->getRawGbTodayTrafficUsage()}, {$sts->getRawGbLastTrafficUsage()}, {$sts->getRawGbUnusedTrafficUsage()}],
-                labels: ["今日已用({$sts->getTodayTrafficUsage()})", "过去已用({$sts->getLastTrafficUsage()})", "剩余流量({$sts->getUnusedTrafficUsage()})"],
+                series: [{$raw_today_traffic}, {$raw_last_traffic}, {$raw_unused_traffic}],
+                labels: ["今日已用({$today_traffic})", "过去已用({$last_traffic})", "剩余流量({$unused_traffic})"],
                 grid: {
                     strokeDashArray: 3,
                 },
@@ -322,6 +313,6 @@
         });
     </script>
 
-    <script src="//cdn.jsdelivr.net/npm/@tabler/core@latest/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
+    <script src="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
 
-{include file='admin/footer.tpl'}
+    {include file='admin/footer.tpl'}

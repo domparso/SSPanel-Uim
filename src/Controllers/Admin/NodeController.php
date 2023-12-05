@@ -5,21 +5,26 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\Config;
 use App\Models\Node;
-use App\Models\Setting;
 use App\Services\Cloudflare;
-use App\Utils\Telegram;
+use App\Services\IM\Telegram;
 use App\Utils\Tools;
 use Cloudflare\API\Endpoints\EndpointException;
 use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use function explode;
+use function json_decode;
+use function json_encode;
+use function round;
+use function str_replace;
 use function trim;
 
 final class NodeController extends BaseController
 {
-    public static array $details = [
+    private static array $details = [
         'field' => [
             'op' => '操作',
             'id' => '节点ID',
@@ -28,6 +33,7 @@ final class NodeController extends BaseController
             'type' => '状态',
             'sort' => '类型',
             'traffic_rate' => '倍率',
+            'is_dynamic_rate' => '是否启用动态流量倍率',
             'node_class' => '等级',
             'node_group' => '组别',
             'node_bandwidth_limit' => '流量限制/GB',
@@ -36,10 +42,15 @@ final class NodeController extends BaseController
         ],
     ];
 
-    public static array $update_field = [
+    private static array $update_field = [
         'name',
         'server',
         'traffic_rate',
+        'is_dynamic_rate',
+        'max_rate',
+        'max_rate_time',
+        'min_rate',
+        'min_rate_time',
         'info',
         'node_group',
         'node_speedlimit',
@@ -85,39 +96,22 @@ final class NodeController extends BaseController
      */
     public function add(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $name = $request->getParam('name') ?? '';
-        $server = trim($request->getParam('server'));
-        $traffic_rate = $request->getParam('traffic_rate') ?? 1;
-        $custom_config = $request->getParam('custom_config') ?? '{}';
-        $info = $request->getParam('info') ?? '';
-        $type = $request->getParam('type') === 'true' ? 1 : 0;
-        $node_group = $request->getParam('node_group') ?? 0;
-        $node_speedlimit = $request->getParam('node_speedlimit') ?? 0;
-        $sort = $request->getParam('sort') ?? 0;
-        $req_node_ip = trim($request->getParam('node_ip'));
-        $node_class = $request->getParam('node_class') ?? 0;
-        $node_bandwidth_limit = $request->getParam('node_bandwidth_limit') ?? 0;
-        $bandwidthlimit_resetday = $request->getParam('bandwidthlimit_resetday') ?? 0;
-
-        if ($name === '' ||
-            $server === '' ||
-            $traffic_rate === '' ||
-            $node_group === '' ||
-            $node_speedlimit === '' ||
-            $sort === '' ||
-            $node_class === '' ||
-            $node_bandwidth_limit === '' ||
-            $bandwidthlimit_resetday === '') {
-            return $response->withJson([
-                'ret' => 0,
-                'msg' => '请确保各项不能为空',
-            ]);
-        }
-
         $node = new Node();
-        $node->name = $name;
-        $node->server = $server;
-        $node->traffic_rate = $traffic_rate;
+
+        $node->name = $request->getParam('name');
+        $node->node_group = $request->getParam('node_group');
+        $node->server = trim($request->getParam('server'));
+
+        $node->traffic_rate = $request->getParam('traffic_rate') ?? 1;
+        $node->is_dynamic_rate = $request->getParam('is_dynamic_rate') === 'true' ? 1 : 0;
+        $node->dynamic_rate_config = json_encode([
+            'max_rate' => $request->getParam('max_rate') ?? 1,
+            'max_rate_time' => $request->getParam('max_rate_time') ?? 0,
+            'min_rate' => $request->getParam('min_rate') ?? 1,
+            'min_rate_time' => $request->getParam('min_rate_time') ?? 0,
+        ]);
+
+        $custom_config = $request->getParam('custom_config') ?? '{}';
 
         if ($custom_config !== '') {
             $node->custom_config = $custom_config;
@@ -125,15 +119,12 @@ final class NodeController extends BaseController
             $node->custom_config = '{}';
         }
 
-        $node->info = $info;
-        $node->type = $type;
-        $node->node_group = $node_group;
-        $node->node_speedlimit = $node_speedlimit;
-        $node->status = '';
-        $node->sort = $sort;
-        $node->node_class = $node_class;
-        $node->node_bandwidth_limit = $node_bandwidth_limit * 1024 * 1024 * 1024;
-        $node->bandwidthlimit_resetday = $bandwidthlimit_resetday;
+        $node->info = $request->getParam('info');
+        $node->node_speedlimit = $request->getParam('node_speedlimit');
+        $node->type = $request->getParam('type') === 'true' ? 1 : 0;
+        $node->sort = $request->getParam('sort');
+
+        $req_node_ip = trim($request->getParam('node_ip'));
 
         if (Tools::isIPv4($req_node_ip) || Tools::isIPv6($req_node_ip)) {
             $node->changeNodeIp($req_node_ip);
@@ -141,12 +132,16 @@ final class NodeController extends BaseController
             $node->changeNodeIp($server);
         }
 
+        $node->node_class = $request->getParam('node_class');
+        $node->node_bandwidth_limit = Tools::autoBytesR($request->getParam('node_bandwidth_limit'));
+        $node->bandwidthlimit_resetday = $request->getParam('bandwidthlimit_resetday');
+
         $node->password = Tools::genRandomChar(32);
 
         if (! $node->save()) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '节点添加失败',
+                'msg' => '添加失败',
             ]);
         }
 
@@ -155,19 +150,20 @@ final class NodeController extends BaseController
             Cloudflare::updateRecord($domain_name[0], $node->node_ip);
         }
 
-        if (Setting::obtain('telegram_add_node')) {
+        if (Config::obtain('telegram_add_node')) {
             try {
-                Telegram::send(
+                (new Telegram())->send(
+                    0,
                     str_replace(
                         '%node_name%',
                         $request->getParam('name'),
-                        Setting::obtain('telegram_add_node_text')
+                        Config::obtain('telegram_add_node_text')
                     )
                 );
             } catch (Exception $e) {
                 return $response->withJson([
                     'ret' => 1,
-                    'msg' => '节点添加成功，但Telegram通知失败',
+                    'msg' => '添加成功，但 Telegram 通知失败',
                     'node_id' => $node->id,
                 ]);
             }
@@ -175,7 +171,7 @@ final class NodeController extends BaseController
 
         return $response->withJson([
             'ret' => 1,
-            'msg' => '节点添加成功',
+            'msg' => '添加成功',
             'node_id' => $node->id,
         ]);
     }
@@ -190,6 +186,15 @@ final class NodeController extends BaseController
         $id = $args['id'];
         $node = Node::find($id);
 
+        $dynamic_rate_config = json_decode($node->dynamic_rate_config);
+        $node->max_rate = $dynamic_rate_config?->max_rate ?? 1;
+        $node->max_rate_time = $dynamic_rate_config?->max_rate_time ?? 3;
+        $node->min_rate = $dynamic_rate_config?->min_rate ?? 1;
+        $node->min_rate_time = $dynamic_rate_config?->min_rate_time ?? 22;
+
+        $node->node_bandwidth = Tools::flowToGB($node->node_bandwidth);
+        $node->node_bandwidth_limit = Tools::flowToGB($node->node_bandwidth_limit);
+
         return $response->write(
             $this->view()
                 ->assign('node', $node)
@@ -200,28 +205,39 @@ final class NodeController extends BaseController
 
     /**
      * 后台更新指定节点内容
+     *
+     * @throws EndpointException
      */
     public function update(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $node = Node::find($id);
 
-        $custom_config = $request->getParam('custom_config') ?? '{}';
-
         $node->name = $request->getParam('name');
         $node->node_group = $request->getParam('node_group');
         $node->server = trim($request->getParam('server'));
-        $node->traffic_rate = $request->getParam('traffic_rate');
-        $node->info = $request->getParam('info');
-        $node->node_speedlimit = $request->getParam('node_speedlimit');
-        $node->type = $request->getParam('type') === 'true' ? 1 : 0;
-        $node->sort = $request->getParam('sort');
+
+        $node->traffic_rate = $request->getParam('traffic_rate') ?? 1;
+        $node->is_dynamic_rate = $request->getParam('is_dynamic_rate') === 'true' ? 1 : 0;
+        $node->dynamic_rate_config = json_encode([
+            'max_rate' => $request->getParam('max_rate') ?? 1,
+            'max_rate_time' => $request->getParam('max_rate_time') ?? 0,
+            'min_rate' => $request->getParam('min_rate') ?? 1,
+            'min_rate_time' => $request->getParam('min_rate_time') ?? 0,
+        ]);
+
+        $custom_config = $request->getParam('custom_config') ?? '{}';
 
         if ($custom_config !== '') {
             $node->custom_config = $custom_config;
         } else {
             $node->custom_config = '{}';
         }
+
+        $node->info = $request->getParam('info');
+        $node->node_speedlimit = $request->getParam('node_speedlimit');
+        $node->type = $request->getParam('type') === 'true' ? 1 : 0;
+        $node->sort = $request->getParam('sort');
 
         $req_node_ip = trim($request->getParam('node_ip'));
 
@@ -231,7 +247,6 @@ final class NodeController extends BaseController
             $node->changeNodeIp($node->server);
         }
 
-        $node->status = '';
         $node->node_class = $request->getParam('node_class');
         $node->node_bandwidth_limit = $request->getParam('node_bandwidth_limit') * 1024 * 1024 * 1024;
         $node->bandwidthlimit_resetday = $request->getParam('bandwidthlimit_resetday');
@@ -243,19 +258,25 @@ final class NodeController extends BaseController
             ]);
         }
 
-        if (Setting::obtain('telegram_update_node')) {
+        if ($_ENV['cloudflare_enable']) {
+            $domain_name = explode('.' . $_ENV['cloudflare_name'], $node->server);
+            Cloudflare::updateRecord($domain_name[0], $node->node_ip);
+        }
+
+        if (Config::obtain('telegram_update_node')) {
             try {
-                Telegram::send(
+                (new Telegram())->send(
+                    0,
                     str_replace(
                         '%node_name%',
                         $request->getParam('name'),
-                        Setting::obtain('telegram_update_node_text')
+                        Config::obtain('telegram_update_node_text')
                     )
                 );
             } catch (Exception $e) {
                 return $response->withJson([
                     'ret' => 1,
-                    'msg' => '修改成功，但Telegram通知失败',
+                    'msg' => '修改成功，但 Telegram 通知失败',
                 ]);
             }
         }
@@ -266,8 +287,11 @@ final class NodeController extends BaseController
         ]);
     }
 
-    public function resetNodePassword(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
-    {
+    public function reset(
+        ServerRequest $request,
+        Response $response,
+        array $args
+    ): Response|ResponseInterface {
         $id = $args['id'];
         $node = Node::find($id);
         $password = Tools::genRandomChar(32);
@@ -297,13 +321,14 @@ final class NodeController extends BaseController
             ]);
         }
 
-        if (Setting::obtain('telegram_delete_node')) {
+        if (Config::obtain('telegram_delete_node')) {
             try {
-                Telegram::send(
+                (new Telegram())->send(
+                    0,
                     str_replace(
                         '%node_name%',
                         $node->name,
-                        Setting::obtain('telegram_delete_node_text')
+                        Config::obtain('telegram_delete_node_text')
                     )
                 );
             } catch (Exception $e) {

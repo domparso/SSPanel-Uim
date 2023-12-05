@@ -17,12 +17,9 @@ use function json_encode;
 use function property_exists;
 use function time;
 
-/*
- *  Coupon Controller
- */
 final class CouponController extends BaseController
 {
-    public static array $details = [
+    private static array $details = [
         'field' => [
             'op' => '操作',
             'id' => 'ID',
@@ -253,7 +250,7 @@ final class CouponController extends BaseController
             $coupon->product_id = $limit->product_id;
             $coupon->use_time = (int) $limit->use_time < 0 ? '不限次数' : $limit->use_time;
             $coupon->total_use_time = ! property_exists($limit, 'total_use_time') ||
-                (int) $limit->total_use_time < 0 ? '不限次数' : $limit->total_use_time;
+            (int) $limit->total_use_time < 0 ? '不限次数' : $limit->total_use_time;
             $coupon->new_user = $limit->new_user === 1 ? '是' : '否';
             $coupon->disabled = $limit->disabled === 1 ? '是' : '否';
             $coupon->create_time = Tools::toDateTime((int) $coupon->create_time);

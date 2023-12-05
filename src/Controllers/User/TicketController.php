@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace App\Controllers\User;
 
 use App\Controllers\BaseController;
-use App\Models\Setting;
+use App\Models\Config;
 use App\Models\Ticket;
-use App\Models\User;
+use App\Services\Notification;
+use App\Services\RateLimit;
 use App\Utils\Tools;
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
+use RedisException;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use Telegram\Bot\Exceptions\TelegramSDKException;
 use voku\helper\AntiXSS;
 use function array_merge;
 use function count;
@@ -20,17 +25,16 @@ use function json_decode;
 use function json_encode;
 use function time;
 
-/**
- *  TicketController
- */
 final class TicketController extends BaseController
 {
+    private static string $err_msg = '请求失败';
+
     /**
      * @throws Exception
      */
-    public function ticket(ServerRequest $request, Response $response, array $args): ?ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ?ResponseInterface
     {
-        if (! Setting::obtain('enable_ticket')) {
+        if (! Config::obtain('enable_ticket')) {
             return $response->withRedirect('/user');
         }
 
@@ -49,16 +53,28 @@ final class TicketController extends BaseController
         );
     }
 
-    public function ticketAdd(ServerRequest $request, Response $response, array $args): ResponseInterface
+    /**
+     * @throws RedisException
+     * @throws ClientExceptionInterface
+     * @throws TelegramSDKException
+     * @throws GuzzleException
+     */
+    public function add(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $title = $request->getParam('title') ?? '';
         $comment = $request->getParam('comment') ?? '';
         $type = $request->getParam('type') ?? '';
 
-        if ($title === '' || $comment === '' || $type === '') {
+        if (! Config::obtain('enable_ticket') ||
+            $this->user->is_shadow_banned ||
+            ! RateLimit::checkTicketLimit($this->user->id) ||
+            $title === '' ||
+            $comment === '' ||
+            $type === ''
+        ) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单内容不能为空',
+                'msg' => self::$err_msg,
             ]);
         }
 
@@ -82,18 +98,11 @@ final class TicketController extends BaseController
         $ticket->type = $antiXss->xss_clean($type);
         $ticket->save();
 
-        if (Setting::obtain('mail_ticket')) {
-            $adminUser = User::where('is_admin', 1)->get();
-            foreach ($adminUser as $user) {
-                $user->sendMail(
-                    $_ENV['appName'] . '-新工单被开启',
-                    'warn.tpl',
-                    [
-                        'text' => '管理员，有人开启了新的工单，请你及时处理。',
-                    ],
-                    []
-                );
-            }
+        if (Config::obtain('mail_ticket')) {
+            Notification::notifyAdmin(
+                $_ENV['appName'] . '-新工单被开启',
+                '管理员，有人开启了新的工单，请你及时处理。'
+            );
         }
 
         return $response->withJson([
@@ -102,15 +111,23 @@ final class TicketController extends BaseController
         ]);
     }
 
-    public function ticketUpdate(ServerRequest $request, Response $response, array $args): ResponseInterface
+    /**
+     * @throws GuzzleException
+     * @throws TelegramSDKException
+     * @throws ClientExceptionInterface
+     */
+    public function update(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $comment = $request->getParam('comment') ?? '';
 
-        if ($comment === '') {
+        if (! Config::obtain('enable_ticket') ||
+            $this->user->is_shadow_banned ||
+            $comment === ''
+        ) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单回复不能为空',
+                'msg' => self::$err_msg,
             ]);
         }
 
@@ -119,7 +136,7 @@ final class TicketController extends BaseController
         if ($ticket === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单不存在',
+                'msg' => self::$err_msg,
             ]);
         }
 
@@ -139,20 +156,13 @@ final class TicketController extends BaseController
         $ticket->status = 'open_wait_admin';
         $ticket->save();
 
-        if (Setting::obtain('mail_ticket')) {
-            $adminUser = User::where('is_admin', 1)->get();
-            foreach ($adminUser as $user) {
-                $user->sendMail(
-                    $_ENV['appName'] . '-工单被回复',
-                    'warn.tpl',
-                    [
-                        'text' => '管理员，有人回复了 <a href="' .
-                            $_ENV['baseUrl'] . '/admin/ticket/' . $ticket->id . '/view">#' . $ticket->id .
-                            '</a> 工单，请你及时处理。',
-                    ],
-                    []
-                );
-            }
+        if (Config::obtain('mail_ticket')) {
+            Notification::notifyAdmin(
+                $_ENV['appName'] . '-工单被回复',
+                '管理员，有人回复了 <a href="' .
+                $_ENV['baseUrl'] . '/admin/ticket/' . $ticket->id . '/view">#' . $ticket->id .
+                '</a> 工单，请你及时处理。'
+            );
         }
 
         return $response->withJson([
@@ -164,8 +174,12 @@ final class TicketController extends BaseController
     /**
      * @throws Exception
      */
-    public function ticketView(ServerRequest $request, Response $response, array $args): ResponseInterface
+    public function detail(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
+        if (! Config::obtain('enable_ticket')) {
+            return $response->withRedirect('/user');
+        }
+
         $id = $args['id'];
         $ticket = Ticket::where('id', '=', $id)->where('userid', $this->user->id)->first();
 

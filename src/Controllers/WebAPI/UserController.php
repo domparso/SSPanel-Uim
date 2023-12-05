@@ -8,19 +8,17 @@ use App\Controllers\BaseController;
 use App\Models\DetectLog;
 use App\Models\Node;
 use App\Services\DB;
+use App\Services\DynamicRate;
 use App\Utils\ResponseHelper;
+use App\Utils\Tools;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use Slim\Factory\AppFactory;
 use function count;
-use function filter_var;
 use function is_array;
 use function json_decode;
 use function time;
-use const FILTER_FLAG_IPV4;
-use const FILTER_FLAG_IPV6;
-use const FILTER_VALIDATE_IP;
 
 final class UserController extends BaseController
 {
@@ -41,6 +39,7 @@ final class UserController extends BaseController
         if ($node === null) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Node not found.',
             ]);
         }
 
@@ -87,7 +86,6 @@ final class UserController extends BaseController
                 ) AS online_log ON online_log.user_id = user.id
             WHERE
                 user.is_banned = 0
-                AND user.expire_in > CURRENT_TIMESTAMP()
                 AND user.class_expire > CURRENT_TIMESTAMP()
                 AND (
                     (
@@ -99,6 +97,8 @@ final class UserController extends BaseController
 
         $keys_unset = match ((int) $node->sort) {
             14, 11 => ['u', 'd', 'transfer_enable', 'method', 'port', 'passwd'],
+            2 => ['u', 'd', 'transfer_enable', 'method', 'port'],
+            1 => ['u', 'd', 'transfer_enable', 'method', 'port', 'uuid'],
             default => ['u', 'd', 'transfer_enable', 'uuid']
         };
 
@@ -114,7 +114,16 @@ final class UserController extends BaseController
                 }
             }
 
-            $user_raw->node_connector = 0;
+            if ($node->sort === 1) {
+                $method = json_decode($node->custom_config)->method ?? '2022-blake3-aes-128-gcm';
+
+                $pk_len = match ($method) {
+                    '2022-blake3-aes-128-gcm' => 16,
+                    default => 32,
+                };
+
+                $user_raw->passwd = Tools::genSs2022UserPk($user_raw->passwd, $pk_len);
+            }
 
             foreach ($keys_unset as $key) {
                 unset($user_raw->$key);
@@ -123,7 +132,7 @@ final class UserController extends BaseController
             $users[] = $user_raw;
         }
 
-        return ResponseHelper::etagJson($request, $response, [
+        return ResponseHelper::successWithDataEtag($request, $response, [
             'ret' => 1,
             'data' => $users,
         ]);
@@ -145,6 +154,7 @@ final class UserController extends BaseController
         if (! $data || ! is_array($data->data)) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Invalid data.',
             ]);
         }
 
@@ -155,6 +165,7 @@ final class UserController extends BaseController
         if ($node === null) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Node not found.',
             ]);
         }
 
@@ -166,16 +177,31 @@ final class UserController extends BaseController
                 transfer_total = transfer_total + ?,
                 transfer_today = transfer_today + ? WHERE id = ?
         ');
-        $rate = (float) $node->traffic_rate;
+
+        if ($node->is_dynamic_rate) {
+            $dynamic_rate_config = json_decode($node->dynamic_rate_config);
+            $rate = DynamicRate::getRateByTime(
+                (float) $dynamic_rate_config?->max_rate,
+                (int) $dynamic_rate_config?->max_rate_time,
+                (float) $dynamic_rate_config?->min_rate,
+                (int) $dynamic_rate_config?->min_rate_time,
+                (int) date('H')
+            );
+        } else {
+            $rate = (float) $node->traffic_rate;
+        }
+
         $sum = 0;
 
         foreach ($data as $log) {
             $u = $log?->u;
             $d = $log?->d;
             $user_id = $log?->user_id;
+
             if ($user_id) {
                 $stat->execute([(int) ($u * $rate), (int) ($d * $rate), (int) ($u + $d), (int) ($u + $d), $user_id]);
             }
+
             $sum += $u + $d;
         }
 
@@ -205,6 +231,7 @@ final class UserController extends BaseController
         if (! $data || ! is_array($data->data)) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Invalid data.',
             ]);
         }
 
@@ -214,6 +241,7 @@ final class UserController extends BaseController
         if ($node_id === null || ! Node::where('id', $node_id)->exists()) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Node not found.',
             ]);
         }
 
@@ -227,10 +255,10 @@ final class UserController extends BaseController
             $ip = (string) $log?->ip;
             $user_id = (int) $log?->user_id;
 
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            if (Tools::isIPv4($ip)) {
                 // convert IPv4 Address to IPv4-mapped IPv6 Address
                 $ip = "::ffff:{$ip}";
-            } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            } elseif (! Tools::isIPv6($ip)) {
                 // either IPv4 or IPv6 Address
                 continue;
             }
@@ -256,18 +284,21 @@ final class UserController extends BaseController
     public function addDetectLog(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $data = json_decode($request->getBody()->__toString());
+
         if (! $data || ! is_array($data->data)) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Invalid data.',
             ]);
         }
-        $data = $data->data;
 
+        $data = $data->data;
         $node_id = $request->getQueryParam('node_id');
 
         if ($node_id === null || ! Node::where('id', $node_id)->exists()) {
             return $response->withJson([
                 'ret' => 0,
+                'data' => 'Node not found.',
             ]);
         }
 

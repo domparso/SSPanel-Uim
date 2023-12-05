@@ -12,15 +12,12 @@ use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 
-/**
- *  User ServerController
- */
 final class ServerController extends BaseController
 {
     /**
      * @throws Exception
      */
-    public function server(ServerRequest $request, Response $response, array $args): ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = $this->user;
         $query = Node::query();
@@ -35,19 +32,23 @@ final class ServerController extends BaseController
         $all_node = [];
 
         foreach ($nodes as $node) {
+            if ($node->node_bandwidth_limit !== 0 && $node->node_bandwidth_limit <= $node->node_bandwidth) {
+                continue;
+            }
+
             $array_node = [];
             $array_node['id'] = $node->id;
             $array_node['name'] = $node->name;
             $array_node['class'] = (int) $node->node_class;
-            $array_node['sort'] = (int) $node->sort;
-            $array_node['info'] = $node->info;
+            $array_node['color'] = $node->color;
+            $array_node['sort'] = $node->sort();
             $array_node['online_user'] = $node->online_user;
             $array_node['online'] = $node->getNodeOnlineStatus();
             $array_node['traffic_rate'] = $node->traffic_rate;
-            $array_node['status'] = $node->status;
-            $array_node['traffic_used'] = (int) Tools::flowToGB($node->node_bandwidth);
-            $array_node['traffic_limit'] = (int) Tools::flowToGB($node->node_bandwidth_limit);
-            $array_node['bandwidth'] = $node->getNodeSpeedlimit();
+            $array_node['is_dynamic_rate'] = $node->is_dynamic_rate;
+            $array_node['node_bandwidth'] = Tools::autoBytes($node->node_bandwidth);
+            $array_node['node_bandwidth_limit'] = $node->node_bandwidth_limit === 0 ? '无限制' :
+                Tools::autoBytes($node->node_bandwidth_limit);
 
             $all_node[] = $array_node;
         }

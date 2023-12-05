@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Models\Setting;
+use App\Models\Config;
 use App\Models\User;
 use App\Services\Cache;
 use App\Services\Captcha;
@@ -21,12 +21,6 @@ use Slim\Http\ServerRequest;
 use voku\helper\AntiXSS;
 use function strlen;
 
-/*
- * Class Password
- *
- * @package App\Controllers
- * 密码重置
- */
 final class PasswordController extends BaseController
 {
     /**
@@ -36,7 +30,7 @@ final class PasswordController extends BaseController
     {
         $captcha = [];
 
-        if (Setting::obtain('enable_reset_password_captcha')) {
+        if (Config::obtain('enable_reset_password_captcha')) {
             $captcha = Captcha::generate();
         }
 
@@ -52,8 +46,9 @@ final class PasswordController extends BaseController
      */
     public function handleReset(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        if (Setting::obtain('enable_reset_password_captcha')) {
+        if (Config::obtain('enable_reset_password_captcha')) {
             $ret = Captcha::verify($request->getParams());
+
             if (! $ret) {
                 return ResponseHelper::error($response, '系统无法接受你的验证结果，请刷新页面后重试');
             }
@@ -83,7 +78,7 @@ final class PasswordController extends BaseController
             }
         }
 
-        return ResponseHelper::successfully($response, $msg);
+        return ResponseHelper::success($response, $msg);
     }
 
     /**
@@ -94,7 +89,7 @@ final class PasswordController extends BaseController
         $antiXss = new AntiXSS();
         $token = $antiXss->xss_clean($args['token']);
         $redis = Cache::initRedis();
-        $email = $redis->get($token);
+        $email = $redis->get('password_reset:' . $token);
 
         if (! $email) {
             return $response->withStatus(302)->withHeader('Location', '/password/reset');
@@ -124,13 +119,14 @@ final class PasswordController extends BaseController
         }
 
         $redis = Cache::initRedis();
-        $email = $redis->get($token);
+        $email = $redis->get('password_reset:' . $token);
 
         if (! $email) {
             return ResponseHelper::error($response, '链接无效');
         }
 
         $user = User::where('email', $email)->first();
+
         if ($user === null) {
             return ResponseHelper::error($response, '链接无效');
         }
@@ -143,12 +139,12 @@ final class PasswordController extends BaseController
             return ResponseHelper::error($response, '重置失败，请重试');
         }
 
-        if (Setting::obtain('enable_forced_replacement')) {
+        if (Config::obtain('enable_forced_replacement')) {
             $user->cleanLink();
         }
 
-        $redis->del($token);
+        $redis->del('password_reset:' . $token);
 
-        return ResponseHelper::successfully($response, '重置成功');
+        return ResponseHelper::success($response, '重置成功');
     }
 }

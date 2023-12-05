@@ -12,11 +12,27 @@ use function json_encode;
 
 final class ResponseHelper
 {
-    public static function successfully(Response $response, string $msg): ResponseInterface
+    public static function success(Response $response, string $msg): ResponseInterface
     {
         return $response->withJson([
             'ret' => 1,
             'msg' => $msg,
+        ]);
+    }
+
+    /**
+     * @param Response $response
+     * @param string $msg
+     * @param array $data
+     *
+     * @return ResponseInterface
+     */
+    public static function successWithData(Response $response, string $msg, array $data): ResponseInterface
+    {
+        return $response->withJson([
+            'ret' => 1,
+            'msg' => $msg,
+            'data' => $data,
         ]);
     }
 
@@ -25,6 +41,22 @@ final class ResponseHelper
         return $response->withJson([
             'ret' => 0,
             'msg' => $msg,
+        ]);
+    }
+
+    /**
+     * @param Response $response
+     * @param string $msg
+     * @param array $data
+     *
+     * @return ResponseInterface
+     */
+    public static function errorWithData(Response $response, string $msg, array $data): ResponseInterface
+    {
+        return $response->withJson([
+            'ret' => 0,
+            'msg' => $msg,
+            'data' => $data,
         ]);
     }
 
@@ -39,7 +71,7 @@ final class ResponseHelper
      *
      * @return ResponseInterface
      */
-    public static function etagJson(
+    public static function successWithDataEtag(
         RequestInterface $request,
         ResponseInterface $response,
         mixed $data

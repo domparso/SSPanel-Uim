@@ -4,22 +4,33 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Models\Config;
 use App\Models\Link;
 use App\Models\Node;
-use App\Models\Setting;
 use App\Models\User as ModelsUser;
+use App\Services\MFA;
 use App\Utils\Hash;
 use App\Utils\Tools;
 use Exception;
 use Ramsey\Uuid\Uuid;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
-use Vectorface\GoogleAuthenticator;
 use function count;
+use function date;
+use function fgets;
+use function file_get_contents;
+use function file_put_contents;
+use function fwrite;
 use function in_array;
 use function json_decode;
 use function json_encode;
-use function time;
+use function method_exists;
+use function strtolower;
+use function trim;
+use const JSON_PRETTY_PRINT;
+use const JSON_UNESCAPED_UNICODE;
+use const PHP_EOL;
+use const STDIN;
 
 final class Tool extends Command
 {
@@ -30,7 +41,6 @@ final class Tool extends Command
 │ ├─ exportAllSettings       - 导出所有设置
 │ ├─ importAllSettings       - 导入所有设置
 │ ├─ resetNodePassword       - 重置所有节点通讯密钥
-│ ├─ getCookie               - 获取指定用户的 Cookie
 │ ├─ resetPort               - 重置单个用户端口
 │ ├─ createAdmin             - 创建管理员帐号
 │ ├─ resetAllPort            - 重置所有用户端口
@@ -62,8 +72,8 @@ EOL;
      */
     public function setTelegram(): void
     {
-        $WebhookUrl = $_ENV['baseUrl'] . '/telegram_callback?token=' . $_ENV['telegram_request_token'];
-        $telegram = new Api($_ENV['telegram_token']);
+        $WebhookUrl = $_ENV['baseUrl'] . '/callback/telegram?token=' . Config::obtain('telegram_request_token');
+        $telegram = new Api(Config::obtain('telegram_token'));
         $telegram->removeWebhook();
 
         if ($telegram->setWebhook(['url' => $WebhookUrl])) {
@@ -75,7 +85,7 @@ EOL;
 
     public function resetAllSettings(): void
     {
-        $settings = Setting::all();
+        $settings = Config::all();
 
         foreach ($settings as $setting) {
             $setting->value = $setting->default;
@@ -87,7 +97,7 @@ EOL;
 
     public function exportAllSettings(): void
     {
-        $settings = Setting::all();
+        $settings = Config::all();
 
         foreach ($settings as $setting) {
             // 因为主键自增所以即便设置为 null 也会在导入时自动分配 id
@@ -109,16 +119,17 @@ EOL;
         $settings = json_decode($json_settings, true);
         $config = [];
         $add_counter = 0;
+        $update_counter = 0;
         $del_counter = 0;
 
         // 检查新增
         foreach ($settings as $item) {
             $config[] = $item['item'];
             $item_name = $item['item'];
-            $query = Setting::where('item', '=', $item['item'])->first();
+            $query = Config::where('item', $item['item'])->first();
 
             if ($query === null) {
-                $new_item = new Setting();
+                $new_item = new Config();
                 $new_item->id = null;
                 $new_item->item = $item['item'];
                 $new_item->value = $item['value'];
@@ -129,12 +140,21 @@ EOL;
                 $new_item->mark = $item['mark'];
                 $new_item->save();
 
-                echo "添加新数据库设置：{$item_name}" . PHP_EOL;
+                echo '添加新数据库设置：' . $item_name . PHP_EOL;
                 $add_counter += 1;
+                continue;
+            }
+
+            if ($query->class !== $item['class']) {
+                $query->class = $item['class'];
+                $query->save();
+                echo '更新数据库设置：' . $item_name . PHP_EOL;
+                $update_counter += 1;
             }
         }
         // 检查移除
-        $db_settings = Setting::all();
+        $db_settings = Config::all();
+
         foreach ($db_settings as $db_setting) {
             if (! in_array($db_setting->item, $config)) {
                 $db_setting->delete();
@@ -143,12 +163,15 @@ EOL;
         }
 
         if ($add_counter !== 0) {
-            echo "总计添加了 {$add_counter} 项新数据库设置" . PHP_EOL;
-        } else {
-            echo '没有任何新数据库设置项需要添加' . PHP_EOL;
+            echo '添加了 ' . $add_counter . ' 项新数据库设置' . PHP_EOL;
         }
+
+        if ($update_counter !== 0) {
+            echo '更新了 ' . $update_counter . ' 项数据库设置' . PHP_EOL;
+        }
+
         if ($del_counter !== 0) {
-            echo "总计移除了 {$del_counter} 项数据库设置" . PHP_EOL;
+            echo '移除了 ' . $del_counter . ' 项数据库设置' . PHP_EOL;
         }
     }
 
@@ -173,7 +196,7 @@ EOL;
         $user = ModelsUser::find(trim(fgets(STDIN)));
 
         if ($user !== null) {
-            $user->port = Tools::getAvPort();
+            $user->port = Tools::getSsPort();
             if ($user->save()) {
                 echo '重置成功!';
             }
@@ -191,7 +214,7 @@ EOL;
 
         foreach ($users as $user) {
             $origin_port = $user->port;
-            $user->port = Tools::getAvPort();
+            $user->port = Tools::getSsPort();
             echo '$origin_port=' . $origin_port . '&$user->port=' . $user->port . PHP_EOL;
             $user->save();
         }
@@ -236,7 +259,8 @@ EOL;
         $users = ModelsUser::all();
 
         foreach ($users as $user) {
-            $user->generateUUID();
+            $user->uuid = Uuid::uuid4();
+            $user->save();
         }
 
         echo 'generate UUID successful';
@@ -250,17 +274,12 @@ EOL;
         $users = ModelsUser::all();
 
         foreach ($users as $user) {
-            $secret = '';
-            $ga = new GoogleAuthenticator();
-
             try {
-                $secret = $ga->createSecret();
+                $user->ga_token = MFA::generateGaToken();
+                $user->save();
             } catch (Exception $e) {
                 echo $e->getMessage();
             }
-
-            $user->ga_token = $secret;
-            $user->save();
         }
 
         echo 'generate Ga Secret successful';
@@ -282,6 +301,8 @@ EOL;
 
     /**
      * 创建 Admin 账户
+     *
+     * @throws Exception
      */
     public function createAdmin(): void
     {
@@ -316,33 +337,24 @@ EOL;
             $user->passwd = Tools::genRandomChar(16);
             $user->uuid = Uuid::uuid4();
             $user->api_token = Uuid::uuid4();
-            $user->port = Tools::getAvPort();
+            $user->port = Tools::getSsPort();
             $user->u = 0;
             $user->d = 0;
             $user->transfer_enable = 0;
             $user->invite_num = 0;
             $user->ref_by = 0;
             $user->is_admin = 1;
-            $user->expire_in = date('Y-m-d H:i:s');
             $user->reg_date = date('Y-m-d H:i:s');
             $user->money = 0;
-            $user->im_type = 1;
+            $user->im_type = 0;
             $user->im_value = '';
             $user->class = 0;
             $user->node_iplimit = 0;
             $user->node_speedlimit = 0;
             $user->theme = $_ENV['theme'];
+            $user->locale = $_ENV['locale'];
 
-            $ga = new GoogleAuthenticator();
-            $secret = '';
-
-            try {
-                $secret = $ga->createSecret();
-            } catch (Exception $e) {
-                echo $e->getMessage();
-            }
-
-            $user->ga_token = $secret;
+            $user->ga_token = MFA::generateGaToken();
             $user->ga_enable = 0;
 
             if ($user->save()) {
@@ -356,18 +368,6 @@ EOL;
     }
 
     /**
-     * 获取 USERID 的 Cookie
-     */
-    public function getCookie(): void
-    {
-        if (count($this->argv) === 4) {
-            $user = ModelsUser::find($this->argv[3]);
-            $expire_in = 86400 + time();
-            echo Hash::cookieHash($user->pass, $expire_in) . ' ' . $expire_in;
-        }
-    }
-
-    /**
      * 为所有用户设置新的主题
      */
     public function setTheme(): void
@@ -375,6 +375,7 @@ EOL;
         fwrite(STDOUT, '请输入要设置的主题名称: ');
         $theme = trim(fgets(STDIN));
         $users = ModelsUser::all();
+
         foreach ($users as $user) {
             $user->theme = $theme;
             $user->save();

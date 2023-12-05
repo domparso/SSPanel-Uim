@@ -112,12 +112,12 @@
 </div>
 <!-- js -->
 <script>
-    $("#switch_theme_mode").click(function() {
+    $("#switch_theme_mode").click(function () {
         $.ajax({
             type: "POST",
             url: "/user/switch_theme_mode",
             dataType: "json",
-            success: function(data) {
+            success: function (data) {
                 if (data.ret === 1) {
                     $('#success-message').text(data.msg);
                     $('#success-dialog').modal('show');
@@ -130,11 +130,11 @@
         })
     });
 
-    $("#success-confirm").click(function() {
+    $("#success-confirm").click(function () {
         location.reload();
     });
 </script>
-<script src="//cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
+<script src="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
 <script>console.table([['数据库查询', '执行时间'], ['{count($queryLog)} 次', '{$optTime} ms']])</script>
 
 </body>

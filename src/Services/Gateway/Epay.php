@@ -10,8 +10,8 @@ declare(strict_types=1);
 
 namespace App\Services\Gateway;
 
+use App\Models\Config;
 use App\Models\Paylist;
-use App\Models\Setting;
 use App\Services\Auth;
 use App\Services\Gateway\Epay\EpayNotify;
 use App\Services\Gateway\Epay\EpaySubmit;
@@ -22,16 +22,16 @@ use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use voku\helper\AntiXSS;
 
-final class Epay extends AbstractPayment
+final class Epay extends Base
 {
     protected array $epay = [];
 
     public function __construct()
     {
-        $this->epay['apiurl'] = Setting::obtain('epay_url');//易支付API地址
-        $this->epay['partner'] = Setting::obtain('epay_pid');//易支付商户pid
-        $this->epay['key'] = Setting::obtain('epay_key');//易支付商户Key
-        $this->epay['sign_type'] = strtoupper('MD5'); //签名方式
+        $this->epay['apiurl'] = Config::obtain('epay_url');//易支付API地址
+        $this->epay['partner'] = Config::obtain('epay_pid');//易支付商户pid
+        $this->epay['key'] = Config::obtain('epay_key');//易支付商户Key
+        $this->epay['sign_type'] = strtoupper(Config::obtain('epay_sign_type')); //签名方式
         $this->epay['input_charset'] = strtolower('utf-8');//字符编码
         $this->epay['transport'] = 'https';//协议 http 或者https
     }
@@ -93,35 +93,37 @@ final class Epay extends AbstractPayment
             'notify_url' => $_ENV['baseUrl'] . '/payment/notify/epay',
             'return_url' => $_ENV['baseUrl'] . '/user/payment/return/epay',
             'name' => $pl->tradeno,
-            #"name" =>  $user->mobile . "" . $price . "",
             'money' => $price,
             'sitename' => $_ENV['appName'],
         ];
 
-        $alipaySubmit = new EpaySubmit($this->epay);
-        $html_text = $alipaySubmit->buildRequestForm($data);
+        $epaySubmit = new EpaySubmit($this->epay);
+        $html_text = $epaySubmit->buildRequestForm($data);
 
         return $response->write($html_text);
     }
 
     public function notify($request, $response, $args): ResponseInterface
     {
-        $alipayNotify = new EpayNotify($this->epay);
-        $verify_result = $alipayNotify->verifyNotify();
+        $epayNotify = new EpayNotify($this->epay);
+        $verify_result = $epayNotify->verifyNotify();
 
         if ($verify_result) {
             $out_trade_no = $_GET['out_trade_no'];
             $type = $_GET['type'];
+
             $type = match ($type) {
                 'qqpay' => 'QQ',
                 'wxpay' => 'WeChat',
                 'epusdt' => 'USDT',
                 default => 'Alipay',
             };
+
             $trade_status = $_GET['trade_status'];
 
             if ($trade_status === 'TRADE_SUCCESS') {
                 $this->postPayment($out_trade_no);
+
                 return $response->withJson(['state' => 'success', 'msg' => '支付成功']);
             }
 
@@ -141,12 +143,9 @@ final class Epay extends AbstractPayment
 
     public function getReturnHTML($request, $response, $args): ResponseInterface
     {
-        $user = Auth::getUser();
-
         $money = $_GET['money'];
 
-        if ($user->use_new_shop) {
-            $html = <<<HTML
+        $html = <<<HTML
             你已成功充值 {$money} 元，正在跳转..
             <script>
                 setTimeout(function() {
@@ -154,16 +153,6 @@ final class Epay extends AbstractPayment
                 },500)
             </script>
             HTML;
-        } else {
-            $html = <<<HTML
-            你已成功充值 {$money} 元，正在跳转..
-            <script>
-                setTimeout(function() {
-                    location.href="/user/code";
-                },500)
-            </script>
-            HTML;
-        }
 
         return $response->write($html);
     }

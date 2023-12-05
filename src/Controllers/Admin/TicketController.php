@@ -7,12 +7,16 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Services\ChatGPT;
+use App\Services\LLM;
+use App\Services\Notification;
 use App\Utils\Tools;
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use Telegram\Bot\Exceptions\TelegramSDKException;
 use function array_merge;
 use function count;
 use function json_decode;
@@ -21,18 +25,20 @@ use function time;
 
 final class TicketController extends BaseController
 {
-    public static array $details =
-    [
-        'field' => [
-            'op' => '操作',
-            'id' => '工单ID',
-            'title' => '主题',
-            'status' => '工单状态',
-            'type' => '工单类型',
-            'userid' => '提交用户',
-            'datetime' => '创建时间',
-        ],
-    ];
+    private static array $details =
+        [
+            'field' => [
+                'op' => '操作',
+                'id' => '工单ID',
+                'title' => '主题',
+                'status' => '工单状态',
+                'type' => '工单类型',
+                'userid' => '提交用户',
+                'datetime' => '创建时间',
+            ],
+        ];
+
+    private static string $err_msg = '请求失败';
 
     /**
      * 后台工单页面
@@ -49,7 +55,9 @@ final class TicketController extends BaseController
     }
 
     /**
-     * 后台更新工单内容
+     * @throws TelegramSDKException
+     * @throws GuzzleException
+     * @throws ClientExceptionInterface
      */
     public function update(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
@@ -59,7 +67,7 @@ final class TicketController extends BaseController
         if ($comment === '') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单回复不能为空',
+                'msg' => self::$err_msg,
             ]);
         }
 
@@ -68,7 +76,7 @@ final class TicketController extends BaseController
         if ($ticket === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单不存在',
+                'msg' => self::$err_msg,
             ]);
         }
 
@@ -83,13 +91,11 @@ final class TicketController extends BaseController
         ];
 
         $user = User::find($ticket->userid);
-        $user->sendMail(
+
+        Notification::notifyUser(
+            $user,
             $_ENV['appName'] . '-工单被回复',
-            'warn.tpl',
-            [
-                'text' => '你好，有人回复了<a href="' . $_ENV['baseUrl'] . '/user/ticket/' . $ticket->id . '/view">工单</a>，请你查看。',
-            ],
-            []
+            '你好，有人回复了<a href="' . $_ENV['baseUrl'] . '/user/ticket/' . $ticket->id . '/view">工单</a>，请你查看。'
         );
 
         $ticket->content = json_encode(array_merge($content_old, $content_new));
@@ -103,7 +109,9 @@ final class TicketController extends BaseController
     }
 
     /**
-     * 喊 ChatGPT 帮忙回复工单
+     * @throws GuzzleException
+     * @throws TelegramSDKException
+     * @throws ClientExceptionInterface
      */
     public function updateAI(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
@@ -114,33 +122,28 @@ final class TicketController extends BaseController
         if ($ticket === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单不存在',
+                'msg' => self::$err_msg,
             ]);
         }
 
         $content_old = json_decode($ticket->content, true);
-        // 获取用户的第一个问题，作为 ChatGPT 的输入
-        $user_question = $content_old[0]['comment'];
-        // 这里可能要等4-5秒
-        $ai_reply = ChatGPT::askOnce($user_question);
-
+        // 获取用户的第一个问题，作为 LLM 的输入
+        $ai_reply = LLM::genTextResponse($content_old[0]['comment']);
         $content_new = [
             [
                 'comment_id' => $content_old[count($content_old) - 1]['comment_id'] + 1,
-                'commenter_name' => 'AI Admin by GPT',
+                'commenter_name' => 'AI Admin',
                 'comment' => $ai_reply,
                 'datetime' => time(),
             ],
         ];
 
         $user = User::find($ticket->userid);
-        $user->sendMail(
+
+        Notification::notifyUser(
+            $user,
             $_ENV['appName'] . '-工单被回复',
-            'warn.tpl',
-            [
-                'text' => '你好，ChatGPT 回复了<a href="' . $_ENV['baseUrl'] . '/user/ticket/' . $ticket->id . '/view">工单</a>，请你查看。',
-            ],
-            []
+            '你好，AI 回复了<a href="' . $_ENV['baseUrl'] . '/user/ticket/' . $ticket->id . '/view">工单</a>，请你查看。'
         );
 
         $ticket->content = json_encode(array_merge($content_old, $content_new));
@@ -158,7 +161,7 @@ final class TicketController extends BaseController
      *
      * @throws Exception
      */
-    public function ticketView(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function detail(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
     {
         $id = $args['id'];
         $ticket = Ticket::where('id', '=', $id)->first();
@@ -192,26 +195,16 @@ final class TicketController extends BaseController
         if ($ticket === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '工单不存在',
+                'msg' => self::$err_msg,
             ]);
         }
 
         if ($ticket->status === 'closed') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '操作失败，工单已关闭',
+                'msg' => self::$err_msg,
             ]);
         }
-
-        $user = User::find($ticket->userid);
-        $user->sendMail(
-            $_ENV['appName'] . '-工单已被关闭',
-            'warn.tpl',
-            [
-                'text' => '你好，你的工单 #'. $ticket->id .' 已被关闭，如果你还有问题，欢迎提交新的工单。',
-            ],
-            []
-        );
 
         $ticket->status = 'closed';
         $ticket->save();

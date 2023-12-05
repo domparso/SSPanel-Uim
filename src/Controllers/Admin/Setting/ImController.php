@@ -5,13 +5,22 @@ declare(strict_types=1);
 namespace App\Controllers\Admin\Setting;
 
 use App\Controllers\BaseController;
-use App\Models\Setting;
+use App\Models\Config;
+use App\Services\IM\Discord;
+use App\Services\IM\Slack;
+use App\Services\IM\Telegram;
 use Exception;
-use function json_encode;
+use GuzzleHttp\Exception\GuzzleException;
+use Telegram\Bot\Exceptions\TelegramSDKException;
 
 final class ImController extends BaseController
 {
-    public static array $update_field = [
+    private static array $update_field = [
+        'enable_telegram',
+        'telegram_token',
+        'telegram_chatid',
+        'telegram_bot',
+        'telegram_request_token',
         'telegram_add_node',
         'telegram_add_node_text',
         'telegram_update_node',
@@ -32,39 +41,32 @@ final class ImController extends BaseController
         'telegram_diary_text',
         'telegram_unbind_kick_member',
         'telegram_group_bound_user',
-        'telegram_show_group_link',
-        'telegram_group_link',
         'enable_welcome_message',
         'telegram_group_quiet',
         'allow_to_join_new_groups',
         'group_id_allowed_to_join',
-        'telegram_admins',
-        'enable_not_admin_reply',
-        'not_admin_reply_msg',
-        'no_user_found',
-        'data_method_not_found',
         'help_any_command',
-        'enable_user_email_group_show',
         'user_not_bind_reply',
-        'telegram_general_pricing',
-        'telegram_general_terms',
+        'discord_bot_token',
+        'discord_client_id',
+        'discord_client_secret',
+        'discord_guild_id',
+        'slack_token',
+        'slack_client_id',
+        'slack_client_secret',
+        'slack_team_id',
     ];
+
+    private static string $test_msg = '这是一条测试消息';
+    private static string $success_msg = '测试信息发送成功';
+    private static string $err_msg = '测试信息发送失败';
 
     /**
      * @throws Exception
      */
-    public function im($request, $response, $args)
+    public function index($request, $response, $args)
     {
-        $settings = [];
-        $settings_raw = Setting::get(['item', 'value', 'type']);
-
-        foreach ($settings_raw as $setting) {
-            if ($setting->type === 'bool') {
-                $settings[$setting->item] = (bool) $setting->value;
-            } else {
-                $settings[$setting->item] = (string) $setting->value;
-            }
-        }
+        $settings = Config::getClass('im');
 
         return $response->write(
             $this->view()
@@ -74,23 +76,13 @@ final class ImController extends BaseController
         );
     }
 
-    public function saveIm($request, $response, $args)
+    public function save($request, $response, $args)
     {
-        $list = self::$update_field;
-
-        foreach ($list as $item) {
-            $setting = Setting::where('item', '=', $item)->first();
-
-            if ($setting->type === 'array') {
-                $setting->value = json_encode($request->getParam($item));
-            } else {
-                $setting->value = $request->getParam($item);
-            }
-
-            if (! $setting->save()) {
+        foreach (self::$update_field as $item) {
+            if (! Config::set($item, $request->getParam($item))) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => "保存 {$item} 时出错",
+                    'msg' => '保存 ' . $item . ' 时出错',
                 ]);
             }
         }
@@ -98,6 +90,66 @@ final class ImController extends BaseController
         return $response->withJson([
             'ret' => 1,
             'msg' => '保存成功',
+        ]);
+    }
+
+    public function testTelegram($request, $response, $args)
+    {
+        try {
+            (new Telegram())->send(
+                $request->getParam('telegram_user_id'),
+                $this::$test_msg,
+            );
+        } catch (TelegramSDKException|Exception $e) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => $this::$err_msg . ' ' . $e->getMessage(),
+            ]);
+        }
+
+        return $response->withJson([
+            'ret' => 1,
+            'msg' => $this::$success_msg,
+        ]);
+    }
+
+    public function testDiscord($request, $response, $args)
+    {
+        try {
+            (new Discord())->send(
+                $request->getParam('discord_user_id'),
+                $this::$test_msg,
+            );
+        } catch (GuzzleException|Exception $e) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => $this::$err_msg . ' ' . $e->getMessage(),
+            ]);
+        }
+
+        return $response->withJson([
+            'ret' => 1,
+            'msg' => '测试信息发送成功',
+        ]);
+    }
+
+    public function testSlack($request, $response, $args)
+    {
+        try {
+            (new Slack())->send(
+                $request->getParam('slack_user_id'),
+                $this::$test_msg,
+            );
+        } catch (GuzzleException|Exception $e) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => $this::$err_msg . ' ' . $e->getMessage(),
+            ]);
+        }
+
+        return $response->withJson([
+            'ret' => 1,
+            'msg' => '测试信息发送成功',
         ]);
     }
 }

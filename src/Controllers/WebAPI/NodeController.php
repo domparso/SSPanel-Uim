@@ -48,11 +48,12 @@ final class NodeController extends BaseController
     {
         $node_id = $args['id'];
         $node = Node::find($node_id);
+
         if ($node === null) {
-            $res = [
+            return $response->withJson([
                 'ret' => 0,
-            ];
-            return $response->withJson($res);
+                'data' => 'Node not found.',
+            ]);
         }
 
         $ip = $request->getServerParam('REMOTE_ADDR');
