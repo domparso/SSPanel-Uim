@@ -25,18 +25,20 @@
                                 <thead>
                                     <tr>
                                         <th>节点</th>
-                                        {$keyList = array_keys($results['0']['unlock_item'])}
-                                        {foreach $results['0']['unlock_item'] as $key => $value}
-                                            {if $key !== 'BilibiliChinaMainland'}
-                                                {if $key === 'BilibiliHKMCTW'}
-                                                    <th>Bilibili（港澳台）</th>
-                                                {elseif $key === 'BilibiliTW'}
-                                                    <th>Bilibili（台湾）</th>
-                                                {else}
-                                                    <th>{$key}</th>
+                                        {if count($results) > 0}
+                                            {$keyList = array_keys($results['0']['unlock_item'])}
+                                            {foreach $results['0']['unlock_item'] as $key => $value}
+                                                {if $key !== 'BilibiliChinaMainland'}
+                                                    {if $key === 'BilibiliHKMCTW'}
+                                                        <th>Bilibili（港澳台）</th>
+                                                    {elseif $key === 'BilibiliTW'}
+                                                        <th>Bilibili（台湾）</th>
+                                                    {else}
+                                                        <th>{$key}</th>
+                                                    {/if}
                                                 {/if}
-                                            {/if}
-                                        {/foreach}
+                                            {/foreach}
+                                        {/if}
                                         <th>更新时间</th>
                                     </tr>
                                 </thead>

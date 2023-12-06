@@ -47,6 +47,8 @@ return static function (Slim\App $app): void {
         // 动态倍率
         $group->get('/rate', App\Controllers\User\RateController::class . ':index');
         $group->post('/rate', App\Controllers\User\RateController::class . ':ajax');
+        // 流媒体解锁
+        $group->get('/media', App\Controllers\UserController::class . ':media');
         // 审计规则
         $group->get('/detect', App\Controllers\User\DetectRuleController::class . ':index');
         // 审计记录
