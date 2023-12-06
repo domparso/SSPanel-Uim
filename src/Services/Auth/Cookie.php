@@ -17,14 +17,25 @@ final class Cookie extends Base
         $user = User::find($uid);
         $expire_in = $time + time();
 
-        CookieUtils::setWithDomain([
-            'uid' => (string) $uid,
-            'email' => $user->email,
-            'key' => Hash::cookieHash($user->pass, $expire_in),
-            'ip' => Hash::ipHash($_SERVER['REMOTE_ADDR'], $uid, $expire_in),
-            'device' => Hash::deviceHash($_SERVER['HTTP_USER_AGENT'], $uid, $expire_in),
-            'expire_in' => (string) $expire_in,
-        ], $expire_in, $_SERVER['HTTP_HOST']);
+        if (strpos($_SERVER['HTTP_HOST'],"127.0.0.1") !== false || strpos($_SERVER['HTTP_HOST'],"localhost") !== false) {
+            CookieUtils::set([
+                'uid' => (string) $uid,
+                'email' => $user->email,
+                'key' => Hash::cookieHash($user->pass, $expire_in),
+                'ip' => Hash::ipHash($_SERVER['REMOTE_ADDR'], $uid, $expire_in),
+                'device' => Hash::deviceHash($_SERVER['HTTP_USER_AGENT'], $uid, $expire_in),
+                'expire_in' => (string) $expire_in,
+            ], $expire_in);
+        } else {
+            CookieUtils::setWithDomain([
+                'uid' => (string) $uid,
+                'email' => $user->email,
+                'key' => Hash::cookieHash($user->pass, $expire_in),
+                'ip' => Hash::ipHash($_SERVER['REMOTE_ADDR'], $uid, $expire_in),
+                'device' => Hash::deviceHash($_SERVER['HTTP_USER_AGENT'], $uid, $expire_in),
+                'expire_in' => (string) $expire_in,
+            ], $expire_in, $_SERVER['HTTP_HOST']);
+        }
     }
 
     public function getUser(): User
@@ -55,7 +66,7 @@ final class Cookie extends Base
 
         if ($_ENV['enable_login_bind_ip']) {
             $remote_ip = $_SERVER['REMOTE_ADDR'];
-            $node = Node::where('node_ip', $remote_ip)->first();
+            $node = Node::where('node_ip', '=', $remote_ip)->first();
 
             if ($node === null && $ipHash !== Hash::ipHash($remote_ip, $uid, $expire_in)) {
                 return $user;
@@ -97,13 +108,25 @@ final class Cookie extends Base
 
     public function logout(): void
     {
-        CookieUtils::setWithDomain([
-            'uid' => '',
-            'email' => '',
-            'key' => '',
-            'ip' => '',
-            'device' => '',
-            'expire_in' => '',
-        ], 0, $_SERVER['HTTP_HOST']);
+        if (strpos($_SERVER['HTTP_HOST'],"127.0.0.1") !== false || strpos($_SERVER['HTTP_HOST'],"localhost") !== false) {
+            CookieUtils::set([
+                'uid' => '',
+                'email' => '',
+                'key' => '',
+                'ip' => '',
+                'device' => '',
+                'expire_in' => '',
+            ], 0);
+        } else {
+            CookieUtils::setWithDomain([
+                'uid' => '',
+                'email' => '',
+                'key' => '',
+                'ip' => '',
+                'device' => '',
+                'expire_in' => '',
+            ], 0, $_SERVER['HTTP_HOST']);
+        }
+
     }
 }
