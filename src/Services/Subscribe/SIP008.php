@@ -37,9 +37,8 @@ final class SIP008 extends Base
                     'plugin' => $plugin,
                     'plugin_opts' => $plugin_option,
                 ];
+                $nodes[] = $node;
             }
-
-            $nodes[] = $node;
         }
 
         return json_encode([

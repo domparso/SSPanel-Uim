@@ -13,6 +13,7 @@ use App\Services\Subscribe\SIP008;
 use App\Services\Subscribe\SS;
 use App\Services\Subscribe\Trojan;
 use App\Services\Subscribe\V2Ray;
+use App\Services\Subscribe\SR;
 
 final class Subscribe
 {
@@ -34,7 +35,7 @@ final class Subscribe
             ->get();
     }
 
-    public static function getClient($type): Json|SS|SIP002|V2Ray|Trojan|Clash|SIP008|SingBox
+    public static function getClient($type): Json|SS|SIP002|V2Ray|Trojan|Clash|SIP008|SR|SingBox
     {
         return match ($type) {
             'ss' => new SS(),
@@ -43,6 +44,7 @@ final class Subscribe
             'trojan' => new Trojan(),
             'clash' => new Clash(),
             'sip008' => new SIP008(),
+            'sr' => new SR(),
             'singbox' => new SingBox(),
             default => new Json(),
         };
@@ -50,6 +52,13 @@ final class Subscribe
 
     public static function getContent($user, $type): string
     {
-        return self::getClient($type)->getContent($user);
+        if ($type === 'v2ray') {
+            return self::getClient($type)->getContent($user) . self::getClient('trojan')->getContent($user);
+        } else if ($type === 'sr') {
+            return base64_encode(self::getClient($type)->getContent($user) . self::getClient('trojan')->getContent($user));
+        } else {
+            return self::getClient($type)->getContent($user);
+        }
+
     }
 }

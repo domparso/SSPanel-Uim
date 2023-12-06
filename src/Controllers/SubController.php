@@ -43,7 +43,7 @@ final class SubController extends BaseController
 
         if (! $_ENV['Subscribe'] ||
             ! in_array($subtype, $subtype_list) ||
-            'https://' . $request->getHeaderLine('Host') !== $_ENV['subUrl']
+            $request->getUri()->getScheme() . '://' . $request->getHeaderLine('Host') !== $_ENV['subUrl']
         ) {
             return ResponseHelper::error($response, $err_msg);
         }
@@ -104,8 +104,9 @@ final class SubController extends BaseController
 
         if (! $_ENV['Subscribe'] ||
             ! Config::obtain('enable_traditional_sub') ||
-            'https://' . $request->getHeaderLine('Host') !== $_ENV['subUrl']
+            $request->getUri()->getScheme() . '://' . $request->getHeaderLine('Host') !== $_ENV['subUrl']
         ) {
+            ;
             return ResponseHelper::error($response, $err_msg);
         }
 
@@ -133,6 +134,7 @@ final class SubController extends BaseController
             'ss',
             'v2ray',
             'trojan',
+            'sr'
         ];
 
         $sub_type = '';

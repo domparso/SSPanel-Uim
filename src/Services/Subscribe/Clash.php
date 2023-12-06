@@ -90,8 +90,9 @@ final class Clash extends Base
                     $v2_port = $node_custom_config['offset_port_user'] ?? ($node_custom_config['offset_port_node'] ?? 443);
                     $security = $node_custom_config['security'] ?? 'none';
                     $encryption = $node_custom_config['encryption'] ?? 'auto';
-                    $network = $node_custom_config['header']['type'] ??
-                        ($node_custom_config['network'] === 'httpupgrade' ? 'ws' : $node_custom_config['network']) ?? '';
+                    $network = $node_custom_config['network'] ?? '';
+//                    $network = $node_custom_config['header']['type'] ??
+//                        ($node_custom_config['network'] === 'httpupgrade' ? 'ws' : $node_custom_config['network']) ?? '';
                     $host = $node_custom_config['header']['request']['headers']['Host'][0] ??
                         $node_custom_config['host'] ?? '';
                     $allow_insecure = $node_custom_config['allow_insecure'] ?? false;
@@ -125,8 +126,9 @@ final class Clash extends Base
                     break;
                 case 14:
                     $trojan_port = $node_custom_config['offset_port_user'] ?? ($node_custom_config['offset_port_node'] ?? 443);
-                    $network = $node_custom_config['header']['type'] ??
-                        ($node_custom_config['network'] === 'httpupgrade' ? 'ws' : $node_custom_config['network']) ?? 'tcp';
+                    $network = $node_custom_config['network'] ?? '';
+//                    $network = $node_custom_config['header']['type'] ??
+//                        ($node_custom_config['network'] === 'httpupgrade' ? 'ws' : $node_custom_config['network']) ?? 'tcp';
                     $host = $node_custom_config['host'] ?? '';
                     $allow_insecure = $node_custom_config['allow_insecure'] ?? false;
                     // Clash 特定配置
