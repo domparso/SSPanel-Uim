@@ -57,7 +57,7 @@
                                 <label class="form-label col-3 col-form-label required">流量倍率</label>
                                 <div class="col">
                                     <input id="traffic_rate" type="text" class="form-control"
-                                           value="">
+                                           value="1">
                                 </div>
                             </div>
                             <div class="form-group mb-3 row">
@@ -86,7 +86,7 @@
                                       <label class="form-check form-check-single form-switch">
                                           <input id="type" class="form-check-input" type="checkbox" {if $node->type}checked="" {/if}>
                                       </label>
-                                  </span>
+                                </span>
                             </div>
                             <div class="hr-text">
                                 <span>动态倍率</span>
@@ -97,7 +97,7 @@
                                       <label class="form-check form-check-single form-switch">
                                           <input id="is_dynamic_rate" class="form-check-input" type="checkbox" {if $node->is_dynamic_rate}checked="" {/if}>
                                       </label>
-                                  </span>
+                                </span>
                             </div>
                             <div class="form-group mb-3 row">
                                 <label class="form-label col-3 col-form-label">最大倍率</label>

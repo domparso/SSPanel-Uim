@@ -64,7 +64,7 @@ final class NodeController extends BaseController
     /**
      * 后台节点页面
      *
-     * @throws Exception
+     * @throws Exception 
      */
     public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
@@ -82,8 +82,16 @@ final class NodeController extends BaseController
      */
     public function create(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
+        $node = new Node();
+        $node->type = 1;
+        $node->is_dynamic_rate = 0;
+        $node->max_rate = 1;
+        $node->max_rate_time = 3;
+        $node->min_rate = 1;
+        $node->min_rate_time = 22;
         return $response->write(
             $this->view()
+                ->assign('node', $node)
                 ->assign('update_field', self::$update_field)
                 ->fetch('admin/node/create.tpl')
         );
@@ -125,9 +133,10 @@ final class NodeController extends BaseController
         $node->sort = $request->getParam('sort');
 
         $req_node_ip = trim($request->getParam('node_ip'));
-
-        if (Tools::isIPv4($req_node_ip) || Tools::isIPv6($req_node_ip)) {
-            $node->changeNodeIp($req_node_ip);
+        $server = trim($request->getParam('server'));
+        if (Tools::isIPv4($server) || Tools::isIPv6($server)) {
+//            $node->changeNodeIp($req_node_ip);
+            $node->node_ip = $req_node_ip;
         } else {
             $node->changeNodeIp($server);
         }
@@ -194,7 +203,6 @@ final class NodeController extends BaseController
 
         $node->node_bandwidth = Tools::flowToGB($node->node_bandwidth);
         $node->node_bandwidth_limit = Tools::flowToGB($node->node_bandwidth_limit);
-
         return $response->write(
             $this->view()
                 ->assign('node', $node)
@@ -240,11 +248,13 @@ final class NodeController extends BaseController
         $node->sort = $request->getParam('sort');
 
         $req_node_ip = trim($request->getParam('node_ip'));
+        $server = trim($request->getParam('server'));
 
-        if (Tools::isIPv4($req_node_ip) || Tools::isIPv6($req_node_ip)) {
-            $node->changeNodeIp($req_node_ip);
+        if (Tools::isIPv4($server) || Tools::isIPv6($server)) {
+//            $node->changeNodeIp($req_node_ip);
+            $node->node_ip = $req_node_ip;
         } else {
-            $node->changeNodeIp($node->server);
+            $node->changeNodeIp($server);
         }
 
         $node->node_class = $request->getParam('node_class');
