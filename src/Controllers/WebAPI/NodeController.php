@@ -83,7 +83,7 @@ final class NodeController extends BaseController
             'version' => VERSION,
         ];
 
-        return ResponseHelper::etagJson($request, $response, [
+        return ResponseHelper::successWithDataEtag($request, $response, [
             'ret' => 1,
             'data' => $data,
         ]);
