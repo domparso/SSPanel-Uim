@@ -292,10 +292,16 @@
                                                class="btn btn-indigo">
                                                 导入 Clash
                                             </a>
-                                            <a href="/clients/v2rayN-Core.zip"
-                                               class="btn btn-primary">
-                                                下载 v2rayN（Windows）
-                                            </a>
+                                            {if $public_setting['enable_v2_sub']}
+                                                <a data-clipboard-text="{$TraditionalSub}?v2ray=1"
+                                                   class="copy btn btn-primary">
+                                                    复制传统订阅（V2Ray）
+                                                </a>
+                                                <a href="/clients/v2rayN-Core.zip"
+                                                   class="btn btn-primary">
+                                                    下载 v2rayN（Windows）
+                                                </a>
+                                            {/if}
                                         </div>
                                     </div>
                                 </div>
@@ -364,10 +370,16 @@
                                            class="btn btn-indigo">
                                             导入 Clash
                                         </a>
-                                        <a href="/clients/v2rayNG.apk"
-                                           class="btn btn-primary">
-                                            下载 v2rayNG（Android）
-                                        </a>
+                                        {if $public_setting['enable_v2_sub']}
+                                            <a data-clipboard-text="{$TraditionalSub}?v2ray=1"
+                                               class="copy btn btn-primary">
+                                                复制传统订阅（V2Ray）
+                                            </a>
+                                            <a href="/clients/v2rayNG.apk"
+                                               class="btn btn-primary">
+                                                下载 v2rayNG（Android）
+                                            </a>
+                                        {/if}
                                     </div>
                                     <div class="btn-list justify-content-start my-2">
                                         <a {if $config['enable_r2_client_download']}
