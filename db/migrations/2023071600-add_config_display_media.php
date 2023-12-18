@@ -9,8 +9,8 @@ return new class() implements MigrationInterface {
     public function up(): int
     {
         DB::getPdo()->exec('
-            NSERT INTO `stream_media` (item, value, class, is_public, type, default, mark) 
-            VALUES ("display_media", 0, "support", 1, "int", "1", "显示限制站点解锁");
+            INSERT INTO `config` (item, value, class, is_public, type, default, mark) 
+            VALUES ("display_media", 1, "support", 1, "int", "1", "显示限制站点解锁");
         ');
 
         return 2023071600;
