@@ -257,14 +257,14 @@
                                             </div>
                                         </div>
                                         <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">Bot Token</label>
+                                            <label class="form-label col-3 col-form-label">Bot Token (包括":"前后部分)</label>
                                             <div class="col">
                                                 <input id="telegram_token" type="text" class="form-control"
                                                        value="{$settings['telegram_token']}">
                                             </div>
                                         </div>
                                         <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">Telegram 群组会话 ID</label>
+                                            <label class="form-label col-3 col-form-label">Telegram 群组会话 ID (包含"-")</label>
                                             <div class="col">
                                                 <input id="telegram_chatid" type="text" class="form-control"
                                                        value="{$settings['telegram_chatid']}">
