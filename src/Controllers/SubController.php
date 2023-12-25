@@ -140,10 +140,64 @@ final class SubController extends BaseController
         $sub_type = '';
         $sub_info = '';
 
+        // 相关信息
+        if (strtotime($user->class_expire) > \time()) {
+            if ($user->transfer_enable === 0) {
+                $unusedTraffic = '剩余流量：0';
+            } else {
+                $unusedTraffic = '剩余流量：' . $user->unusedTraffic();
+            }
+            $expire_in = '过期时间：';
+            if ($user->class_expire !== '1989-06-04 00:05:00') {
+                $userClassExpire = explode(' ', $user->class_expire);
+                $expire_in .= $userClassExpire[0];
+            } else {
+                $expire_in .= '无限期';
+            }
+        } else {
+            $unusedTraffic = '账户已过期，请续费后使用';
+            $expire_in = '账户已过期，请续费后使用';
+        }
+
+        $baseUrl = explode('//', $_ENV['baseUrl'])[1];
+        $baseUrl = explode('/', $baseUrl)[0];
+
+        // 订阅信息显示
+        $v2rayn_array1 = [
+            'v' => '2',
+            'ps' => $unusedTraffic,
+            'add' => $baseUrl,
+            'port' => 10086,
+            'id' => $user->uuid,
+            'aid' => 0,
+            'net' => 'tcp',
+            'type' => '',
+            'host' => '',
+            'path' => '/',
+            'tls' => '',
+            'flow' => '',
+        ];
+        $sub_info .= 'vmess://' . base64_encode(json_encode($v2rayn_array1,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+        $v2rayn_array2 = [
+            'v' => '2',
+            'ps' => $expire_in,
+            'add' => $baseUrl,
+            'port' => 10086,
+            'id' => $user->uuid,
+            'aid' => 0,
+            'net' => 'tcp',
+            'type' => '',
+            'host' => '',
+            'path' => '/',
+            'tls' => '',
+            'flow' => '',
+        ];
+        $sub_info .= 'vmess://' . base64_encode(json_encode($v2rayn_array2,JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+
         foreach ($params as $key => $value) {
             if (in_array($key, $sub_types) && $value === '1') {
                 $sub_type = $key;
-                $sub_info = Subscribe::getContent($user, $sub_type);
+                $sub_info .= Subscribe::getContent($user, $sub_type);
                 break;
             }
         }
