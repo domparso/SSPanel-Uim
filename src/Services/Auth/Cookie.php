@@ -17,12 +17,18 @@ final class Cookie extends Base
         $user = User::find($uid);
         $expire_in = $time + time();
 
+        // 增加ip判断
+        $remote_ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+        if ($remote_ip === null) {
+            $remote_ip = $_SERVER['REMOTE_ADDR'];
+        }
+
         if (strpos($_SERVER['HTTP_HOST'],"127.0.0.1") !== false || strpos($_SERVER['HTTP_HOST'],"localhost") !== false) {
             CookieUtils::set([
                 'uid' => (string) $uid,
                 'email' => $user->email,
                 'key' => Hash::cookieHash($user->pass, $expire_in),
-                'ip' => Hash::ipHash($_SERVER['REMOTE_ADDR'], $uid, $expire_in),
+                'ip' => Hash::ipHash($remote_ip, $uid, $expire_in),
                 'device' => Hash::deviceHash($_SERVER['HTTP_USER_AGENT'], $uid, $expire_in),
                 'expire_in' => (string) $expire_in,
             ], $expire_in);
@@ -31,7 +37,7 @@ final class Cookie extends Base
                 'uid' => (string) $uid,
                 'email' => $user->email,
                 'key' => Hash::cookieHash($user->pass, $expire_in),
-                'ip' => Hash::ipHash($_SERVER['REMOTE_ADDR'], $uid, $expire_in),
+                'ip' => Hash::ipHash($remote_ip, $uid, $expire_in),
                 'device' => Hash::deviceHash($_SERVER['HTTP_USER_AGENT'], $uid, $expire_in),
                 'expire_in' => (string) $expire_in,
             ], $expire_in, $_SERVER['HTTP_HOST']);
@@ -65,7 +71,12 @@ final class Cookie extends Base
         }
 
         if ($_ENV['enable_login_bind_ip']) {
-            $remote_ip = $_SERVER['REMOTE_ADDR'];
+            // 增加ip判断
+            $remote_ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            if ($remote_ip === null) {
+                $remote_ip = $_SERVER['REMOTE_ADDR'];
+            }
+
             $node = Node::where('node_ip', '=', $remote_ip)->first();
 
             if ($node === null && $ipHash !== Hash::ipHash($remote_ip, $uid, $expire_in)) {
