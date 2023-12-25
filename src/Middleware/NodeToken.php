@@ -32,7 +32,7 @@ final class NodeToken implements MiddlewareInterface
 
         $antiXss = new AntiXSS();
         if ($_ENV['enable_rate_limit'] &&
-            (! RateLimit::checkIPLimit($request->getServerParam('REMOTE_ADDR')) ||
+            (! RateLimit::checkIPLimit($request->getServerParam('HTTP_X_FORWARDED_FOR')) ||
             ! RateLimit::checkWebAPILimit($antiXss->xss_clean($key)))
         ) {
 
@@ -50,7 +50,8 @@ final class NodeToken implements MiddlewareInterface
         }
 
         if ($_ENV['checkNodeIp']) {
-            $ip = $request->getServerParam('REMOTE_ADDR');
+            # $ip = $request->getServerParam('REMOTE_ADDR');
+            $ip = $request->getServerParam('HTTP_X_FORWARDED_FOR');
 
             if ($ip !== '127.0.0.1' && ! Node::where('node_ip', $ip)->exists()) {
                 return AppFactory::determineResponseFactory()->createResponse(401)->withJson([

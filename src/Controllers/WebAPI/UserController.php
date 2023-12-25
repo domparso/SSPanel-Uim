@@ -43,7 +43,7 @@ final class UserController extends BaseController
             ]);
         }
 
-        $ip = $request->getServerParam('REMOTE_ADDR');
+        $ip = $request->getServerParam('HTTP_X_FORWARDED_FOR');
         if ($ip !== '127.0.0.1' && $node->node_ip !== $ip) {
             return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
                 'ret' => 0,

@@ -22,7 +22,7 @@ final class NodeController extends BaseController
     public function saveReport(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $node_id = $request->getParam('node_id');
-        $ip = $request->getServerParam('REMOTE_ADDR');
+        $ip = $request->getServerParam('HTTP_X_FORWARDED_FOR');
         if ($_ENV['checkNodeIp'] && ! $this->ckeckNodeIp($ip, $node_id)) {
             return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
                 'ret' => 0,
@@ -53,14 +53,6 @@ final class NodeController extends BaseController
             return $response->withJson([
                 'ret' => 0,
                 'data' => 'Node not found.',
-            ]);
-        }
-
-        $ip = $request->getServerParam('REMOTE_ADDR');
-        if ($ip !== '127.0.0.1' && $node->node_ip !== $ip) {
-            return AppFactory::determineResponseFactory()->createResponse(401)->withJson([
-                'ret' => 0,
-                'data' => 'Invalid request IP.',
             ]);
         }
 
