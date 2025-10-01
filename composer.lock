@@ -2752,16 +2752,16 @@
         },
         {
             "name": "ozdemir/datatables",
-            "version": "2.3.7",
+            "version": "2.3.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/n1crack/datatables.git",
-                "reference": "7d8d51dccc1647fc68d3b6f90453e3f8b8b8bf9d"
+                "reference": "24da29ac050878da006eba35767de1fc69c4f92e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/n1crack/datatables/zipball/7d8d51dccc1647fc68d3b6f90453e3f8b8b8bf9d",
-                "reference": "7d8d51dccc1647fc68d3b6f90453e3f8b8b8bf9d",
+                "url": "https://api.github.com/repos/n1crack/datatables/zipball/24da29ac050878da006eba35767de1fc69c4f92e",
+                "reference": "24da29ac050878da006eba35767de1fc69c4f92e",
                 "shasum": ""
             },
             "require": {
@@ -2786,12 +2786,18 @@
                     "email": "yusuf@ozdemir.be"
                 }
             ],
-            "description": "PHP Library to handle server-side processing for Datatables, in a fast and simple way.",
+            "description": "Simplify your Datatables server-side processing effortlessly using our lightning-fast PHP library, streamlining your workflow seamlessly.",
             "support": {
                 "issues": "https://github.com/n1crack/datatables/issues",
-                "source": "https://github.com/n1crack/datatables/tree/2.3.7"
+                "source": "https://github.com/n1crack/datatables/tree/2.3.16"
             },
-            "time": "2023-05-29T10:42:49+00:00"
+            "funding": [
+                {
+                    "url": "https://github.com/n1crack",
+                    "type": "github"
+                }
+            ],
+            "time": "2024-06-12T14:59:19+00:00"
         },
         {
             "name": "php-http/client-common",
@@ -10120,7 +10126,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
@@ -10139,6 +10145,6 @@
         "ext-yaml": "*",
         "ext-zip": "*"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
