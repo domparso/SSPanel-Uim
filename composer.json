@@ -29,7 +29,7 @@
         "nikolaposa/rate-limit": "^3.0",
         "openai-php/client": "^0.7.4",
         "ozdemir/datatables": "^2.3.7",
-        "phpmailer/phpmailer": "^6.8.1",
+        "phpmailer/phpmailer": "^7.0.2",
         "postal/postal": "^2",
         "ramsey/uuid": "^4.7.4",
         "sendgrid/sendgrid": "^8.0.1",
